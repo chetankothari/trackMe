@@ -109,6 +109,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
           userEntity.removeProperty(COLUMN_SHARED_WITH)
         }
         datastore.put(userEntity)
+        logger.info(s"updated user settings(put used)")
         if (invalidUsers.nonEmpty) {
           ("Some settings updated, failed to share with the folling Users as they are not registered Users: " +
             invalidUsers.mkString(" , "), None)
@@ -270,10 +271,12 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
           val sessionEntity = new Entity(KIND_SESSIONS, sessionKey)
           sessionEntity.setProperty(COLUMN_SESSION_ID, sid)
           datastore.put(sessionEntity)
+          logger.info(s"Session Added/Updated")
 
           val batchEntity = new Entity(KIND_BATCHES, batchKey)
           batchEntity.setProperty(COLUMN_BATCH_ID, bid)
           datastore.put(batchEntity)
+          logger.info(s"Batch Added")
 
           val locationEntities: List[Entity] = batch.locations.map { loc =>
             val batchLocations = new Entity(KIND_LOCATIONS, batchKey)
@@ -283,6 +286,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
             batchLocations.setProperty(COLUMN_TIME_STAMP, loc.timeStamp)
             batchLocations
           }
+          val locCount = locationEntities.length
+          logger.info(s"Adding $locCount locations")
           datastore.put(locationEntities.asJava)
           (sid, bid, true)
         } else {
@@ -312,12 +317,13 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
   }
 
   private def getLastLocations(userId: String) = {
-    logger.info(s"Getting locations for $userId")
 
     sharedFrom(userId).flatMap { sharerId =>
       val userKey = mkUserKey(sharerId)
       val userQuery = new Query(KIND_LOCATIONS).setAncestor(userKey) addSort (COLUMN_TIME_STAMP, SortDirection.DESCENDING)
       val usersLastLocation = ((datastore.prepare(userQuery)).asList(FetchOptions.Builder.withLimit(1))).asScala.headOption
+      val locCount = usersLastLocation.size
+      logger.info(s"Retrived $locCount lastLocations")
       usersLastLocation.map { location =>
         val latLong = LatLong(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
         val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
@@ -331,6 +337,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
     val userKey = mkUserKey(userId)
     val query = new Query(KIND_LOCATIONS).setAncestor(userKey) addSort (COLUMN_TIME_STAMP, SortDirection.DESCENDING)
     val locations = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(LOCATIONS_LIMIT)).asScala
+    val locCount = locations.length
+    logger.info(s"Retrived $locCount locations")
     (locations.map { location =>
       val latLong = LatLong(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
       val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
