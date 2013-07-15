@@ -271,12 +271,12 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
           val sessionEntity = new Entity(KIND_SESSIONS, sessionKey)
           sessionEntity.setProperty(COLUMN_SESSION_ID, sid)
           datastore.put(sessionEntity)
-          logger.info(s"Session Added/Updated")
+          logger.info(s"Session $sid Added/Updated")
 
           val batchEntity = new Entity(KIND_BATCHES, batchKey)
           batchEntity.setProperty(COLUMN_BATCH_ID, bid)
           datastore.put(batchEntity)
-          logger.info(s"Batch Added")
+          logger.info(s"Batch $bid Added")
 
           val locationEntities: List[Entity] = batch.locations.map { loc =>
             val batchLocations = new Entity(KIND_LOCATIONS, batchKey)
