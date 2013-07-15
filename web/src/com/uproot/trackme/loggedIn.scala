@@ -3,12 +3,10 @@ package com.uproot.trackme;
 import java.util.ArrayList
 import java.util.ConcurrentModificationException
 import java.util.zip.GZIPInputStream
-
 import scala.Option.option2Iterable
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
-
 import com.google.appengine.api.datastore.Entity
 import com.google.appengine.api.datastore.FetchOptions
 import com.google.appengine.api.datastore.KeyFactory
@@ -17,7 +15,6 @@ import com.google.appengine.api.datastore.Query.FilterOperator
 import com.google.appengine.api.datastore.Query.FilterPredicate
 import com.google.appengine.api.datastore.Query.SortDirection
 import com.google.appengine.api.users.UserServiceFactory
-
 import Helper.COLUMN_ACCURACY
 import Helper.COLUMN_BATCH_ID
 import Helper.COLUMN_LATITUDE
@@ -39,8 +36,9 @@ import Helper.mkSessionKey
 import Helper.mkUserKey
 import Helper.userExistsFunc
 import javax.servlet.http.HttpServletRequest
+import com.typesafe.scalalogging.slf4j.Logging
 
-class LoggedIn(currUserId: String, req: HttpServletRequest) {
+class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
 
   import Helper._
   private def userExists = userExistsFunc(currUserId)
@@ -313,6 +311,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) {
   }
 
   private def getLastLocations(userId: String) = {
+    logger.debug(s"Getting locations for $userId")
+
     sharedFrom(userId).flatMap { sharerId =>
       val userKey = mkUserKey(sharerId)
       val userQuery = new Query(KIND_LOCATIONS).setAncestor(userKey) addSort (COLUMN_TIME_STAMP, SortDirection.DESCENDING)
