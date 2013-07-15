@@ -45,6 +45,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
   private val userService = UserServiceFactory.getUserService
   private val thisURL = req.getRequestURI
   private val logoutURL = userService.createLogoutURL(thisURL)
+
   private val menu = new Menu(
     Seq(MenuEntry("Home", "icon-home", "/web/home"),
       MenuEntry("Settings", "icon-wrench", "/web/settings"),
@@ -311,7 +312,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
   }
 
   private def getLastLocations(userId: String) = {
-    logger.debug(s"Getting locations for $userId")
+    logger.info(s"Getting locations for $userId")
 
     sharedFrom(userId).flatMap { sharerId =>
       val userKey = mkUserKey(sharerId)
@@ -330,7 +331,6 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
     val userKey = mkUserKey(userId)
     val query = new Query(KIND_LOCATIONS).setAncestor(userKey) addSort (COLUMN_TIME_STAMP, SortDirection.DESCENDING)
     val locations = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(LOCATIONS_LIMIT)).asScala
-    println(locations.length)
     (locations.map { location =>
       val latLong = LatLong(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
       val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
