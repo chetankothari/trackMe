@@ -6,6 +6,7 @@ object implicitObject {
   implicit class XMLHelper(n: xml.Node) {
     def attr(name: String) = n.attribute(name).get(0).text
     def attrDouble(name: String) = n.attr(name).toDouble
+    def attrOptDouble(name: String) = n.attribute(name).map(_(0).text.toDouble)
     def attrInt(name: String) = n.attr(name).toInt
     def attrLong(name: String) = n.attr(name).toLong
   }
@@ -21,12 +22,11 @@ object Constants {
   val MINUS_PIby2 = -PIby2
   val MIN_ALTITUDE = -1000
   val MAX_ALTITUDE = 20000
-  val DOES_NOT_HAVE_ALTITUDE: Double = -1111
 }
 
 case class Location(latLongAlt: LatLongAlt, accuracy: Long, timeStamp: Long) {
   def this(locDetails: scala.xml.Node) = this(LatLongAlt(locDetails.attrDouble(XML_ATTRIBUTE_LATITUDE),
-    locDetails.attrDouble(XML_ATTRIBUTE_LONGITUDE), locDetails.attrDouble(XML_ATTRIBUTE_ALTITUDE)),
+    locDetails.attrDouble(XML_ATTRIBUTE_LONGITUDE), locDetails.attrOptDouble(XML_ATTRIBUTE_ALTITUDE)),
     locDetails.attrLong(XML_ATTRIBUTE_ACCURACY), locDetails.attrLong(XML_ATTRIBUTE_TIME_STAMP))
 
   def isValid(maxTime: Long) = {
@@ -47,17 +47,12 @@ case class Batch(sid: String, bid: Int, locations: List[Location]) {
     (node \ XML_TAG_LOCATION).toList.map(new Location(_)))
 }
 
-case class LatLongAlt(latitude: Double, longitude: Double, altitude: Double = Constants.DOES_NOT_HAVE_ALTITUDE) {
-  def hasAlt = altitude != Constants.DOES_NOT_HAVE_ALTITUDE
-
-  def validAlt = {
-    if (hasAlt) altitude >= Constants.MIN_ALTITUDE && altitude <= Constants.MAX_ALTITUDE
-    else true
-  }
+case class LatLongAlt(latitude: Double, longitude: Double, altitudeOpt: Option[Double] = None) {
+  def validateAlt = altitudeOpt.map{ alt => alt >= Constants.MIN_ALTITUDE && alt <= Constants.MAX_ALTITUDE }.getOrElse(true)
 
   def isValid = {
     latitude >= Constants.MINUS_PIby2 && latitude <= Constants.PIby2 &&
-      longitude >= Constants.MINUS_PI && longitude <= Constants.PI && validAlt
+      longitude >= Constants.MINUS_PI && longitude <= Constants.PI && validateAlt
   }
 
   def mkJSON = "{\"lat\":" + latitude + ", \"long\":" + longitude + "}"

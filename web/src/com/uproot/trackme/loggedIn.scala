@@ -292,10 +292,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
             val batchLocations = new Entity(KIND_LOCATIONS, loc.timeStamp, batchKey)
             batchLocations.setProperty(COLUMN_LATITUDE, loc.latLongAlt.latitude)
             batchLocations.setProperty(COLUMN_LONGITUDE, loc.latLongAlt.longitude)
-            if (!(loc.latLongAlt.altitude == -1111)) {
-              println(loc.latLongAlt.altitude)
-              batchLocations.setUnindexedProperty(COLUMN_ALTITUDE, loc.latLongAlt.altitude)
-            }
+            loc.latLongAlt.altitudeOpt.foreach(batchLocations.setUnindexedProperty(COLUMN_ALTITUDE, _))
             batchLocations.setUnindexedProperty(COLUMN_ACCURACY, loc.accuracy)
             batchLocations.setProperty(COLUMN_TIME_STAMP, loc.timeStamp)
             batchLocations
@@ -339,7 +336,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
       val locCount = usersLastLocation.size
       logger.info(s"Retrived $locCount lastLocations")
       usersLastLocation.map { location =>
-        val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
+        val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double],
+          location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
         val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
         val accuracy = location.getProperty(COLUMN_ACCURACY).asInstanceOf[Long]
         (sharerId, Location(latLong, accuracy, timeStamp))
@@ -354,7 +352,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
     val locCount = locations.length
     logger.info(s"Retrived $locCount locations")
     (locations.map { location =>
-      val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
+      val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double],
+        location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
       val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
       val accuracy = location.getProperty(COLUMN_ACCURACY).asInstanceOf[Long]
       (Location(latLong, accuracy, timeStamp)).mkJSON
