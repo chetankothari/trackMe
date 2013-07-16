@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-public class OnBoot extends BroadcastReceiver {
+public class OnBroadcastListener extends BroadcastReceiver {
   private final String ON_BOOT_TAG = "onBoot";
   private final String onBoot = "android.intent.action.BOOT_COMPLETED";
   private final String onNetworkChange = "android.net.conn.CONNECTIVITY_CHANGE";

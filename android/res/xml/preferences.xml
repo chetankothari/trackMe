@@ -2,6 +2,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <com.uprootlabs.trackme.MyEditTextPreference
+        android:defaultValue="@string/user_id_debug"
         android:dialogTitle="@string/userid"
         android:inputType="textEmailAddress"
         android:key="@string/key_userid"
@@ -9,13 +10,14 @@
         android:title="@string/userid" />
 
     <com.uprootlabs.trackme.MyEditTextPreferencePassword
+        android:defaultValue="@string/passkey_debug"
         android:dialogTitle="@string/passkey"
         android:key="@string/key_passkey"
         android:summary="@string/passkey_summary"
         android:title="@string/passkey" />
 
     <com.uprootlabs.trackme.MyEditTextPreference
-        android:defaultValue="@string/server_location_default"
+        android:defaultValue="@string/server_location_default_debug"
         android:dialogTitle="@string/server_location"
         android:inputType="text"
         android:key="@string/key_server_location"

@@ -2,7 +2,6 @@ package com.uprootlabs.trackme;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -27,23 +26,20 @@ public final class MainActivity extends Activity {
   public static final String MAIN_ACTIVITY_UPDATE_DEBUG_UI = "MainActivity/updateDebugUI";
   private static final String MAIN_ACTIVITY_TAG = "mainActivity";
   private final IntentFilter locationsServiceStatusIntentFilter = new IntentFilter();
-  DebugHelper debugPreferences;
+  private DebugHelper debugPreferences;
 
   private TextView valueLat;
   private TextView valueLng;
+  private TextView valueAlt;
   private TextView valueAccuracy;
   private TextView valueTimeStamp;
   private TextView valueCaptureFrequency;
   private TextView valueUpdateFrequency;
   private TextView valueSessionID;
   private TextView debug;
-
   private Button startStopButton;
-
-  MyPreference myPreference;
-
+  private MyPreference myPreference;
   private String captureServiceStatus;
-  PendingIntent pi;
 
   private final BroadcastReceiver broadCastReceiverMainActivity = new BroadcastReceiver() {
 
@@ -85,6 +81,7 @@ public final class MainActivity extends Activity {
     debug = (TextView) findViewById(R.id.debug);
     valueLat = (TextView) findViewById(R.id.lat);
     valueLng = (TextView) findViewById(R.id.lng);
+    valueAlt= (TextView) findViewById(R.id.alt);
     valueAccuracy = (TextView) findViewById(R.id.accuracy);
     valueTimeStamp = (TextView) findViewById(R.id.timeStamp);
     startStopButton = (Button) findViewById(R.id.startStop);
@@ -160,11 +157,6 @@ public final class MainActivity extends Activity {
       Log.d(MAIN_ACTIVITY_TAG, "Upload");
       break;
 
-    case R.id.action_debug:
-      final Intent debug = new Intent(this, DebugActivity.class);
-      startActivity(debug);
-      break;
-
     }
 
     return true;
@@ -220,6 +212,7 @@ public final class MainActivity extends Activity {
   private void updateLocationDetails(final Intent intent) {
     valueLat.setText(intent.getStringExtra(LocationService.LATITUDE));
     valueLng.setText(intent.getStringExtra(LocationService.LONGITUDE));
+    valueAlt.setText(intent.getStringExtra(LocationService.ALTITUDE));
     valueAccuracy.setText(intent.getStringExtra(LocationService.ACCURACY));
     valueTimeStamp.setText(intent.getStringExtra(LocationService.TIMESTAMP));
   }

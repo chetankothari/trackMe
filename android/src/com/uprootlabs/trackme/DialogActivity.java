@@ -43,25 +43,30 @@ public class DialogActivity extends Activity {
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    // setContentView(R.layout.activity_dialog);
     this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
     final Intent intent = getIntent();
     final String errorType = intent.getStringExtra(STR_ERROR_TYPE);
+
     if (errorType.equals(STR_ERROR_GOOGLE)) {
+
       final int resultCode = intent.getIntExtra(STR_ERROR_CODE, 0);
       final Dialog errorDialog = GooglePlayServicesUtil.getErrorDialog(resultCode, this, CONNECTION_FAILURE_RESOLUTION_REQEUST);
+
       if (errorDialog != null) {
         errorDialog.setOnDismissListener(dismissListener);
         errorDialog.show();
       }
+
     } else {
+
       final String errorMessage = intent.getStringExtra(STR_ERROR_MESSAGE);
       final AlertDialog.Builder errorDialog = new AlertDialog.Builder(this);
       errorDialog.setTitle("Error");
       errorDialog.setMessage(errorMessage);
       errorDialog.setNeutralButton(this.getResources().getString(R.string.ok), clickListener);
       errorDialog.show();
+
     }
 
   }

@@ -46,20 +46,39 @@
         android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/labelAccuracy"
+        android:id="@+id/labelAlt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_below="@id/labelLat"
+        android:text="Alt : "
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/alt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@id/labelAlt"
+        android:layout_marginLeft="10dp"
+        android:layout_toRightOf="@id/labelAlt"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/labelAccuracy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@id/alt"
+        android:layout_marginLeft="10dp"
+        android:layout_toRightOf="@id/alt"
         android:text="@string/label_accuracy"
         android:textSize="20sp" />
 
     <TextView
         android:id="@+id/accuracy"
-        android:layout_width="fill_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@id/labelAccuracy"
-        android:layout_below="@id/lat"
+        android:layout_below="@id/lng"
         android:layout_marginLeft="10dp"
         android:layout_toRightOf="@id/labelAccuracy"
         android:textSize="20sp" />
@@ -69,7 +88,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@id/labelAccuracy"
+        android:layout_below="@id/labelAlt"
         android:text="@string/label_time_stamp"
         android:textSize="20sp" />
 

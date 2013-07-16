@@ -13,9 +13,9 @@ final class DebugHelper {
   public static final String PREFERENCE_ARCHIVED_LOCATION_COUNT = "archived";
   public static final String PREFERENCE_UPLOADED_LOCATION_COUNT = "uploaded";
   public static final String PREFERENCE_TOTAL_QUEUED_LOCATION_COUNT = "queued";
-  SQLiteDatabase db;
-  SharedPreferences debug;
-  SharedPreferences.Editor debugEditor;
+  private SQLiteDatabase db;
+  private SharedPreferences debug;
+  private SharedPreferences.Editor debugEditor;
 
   public DebugHelper(final Context context) {
     debug = context.getSharedPreferences(PREFERENCE_NAME, 0);

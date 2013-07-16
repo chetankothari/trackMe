@@ -24,6 +24,7 @@
     <string name="update_frequency_default">15</string>
     <string name="label_lat">Latitude : </string>
     <string name="label_lng">Longitude : </string>
+    <string name="label_alt">Altitude : </string>
     <string name="label_accuracy">Accuracy : </string>
     <string name="label_time_stamp">Time Stamp : </string>
     <string name="label_capture_frequency">Capture Frequency : </string>

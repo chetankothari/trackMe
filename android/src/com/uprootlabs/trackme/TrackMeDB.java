@@ -10,6 +10,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
+import android.util.Log;
 
 final class TrackMeDB {
   private final SQLiteDatabase db;
@@ -31,6 +32,10 @@ final class TrackMeDB {
       values.put(TrackMeDBDetails.COLUMN_NAME_SESSION_ID, sessionID);
       values.put(TrackMeDBDetails.COLUMN_NAME_LAT, lat);
       values.put(TrackMeDBDetails.COLUMN_NAME_LNG, lng);
+      if (location.hasAltitude()) {
+        final double alt = location.getAltitude();
+        values.put(TrackMeDBDetails.COLUMN_NAME_ALT, alt);
+      }
       values.put(TrackMeDBDetails.COLUMN_NAME_ACC, acc);
       values.put(TrackMeDBDetails.COLUMN_NAME_TS, timeStamp);
 
@@ -91,8 +96,8 @@ final class TrackMeDB {
 
   private Cursor getLocationsByUploadID(final int uploadID) {
     final String[] columns = { TrackMeDBDetails.COLUMN_NAME_SESSION_ID, TrackMeDBDetails.COLUMN_NAME_LAT, TrackMeDBDetails.COLUMN_NAME_LNG,
-        TrackMeDBDetails.COLUMN_NAME_ACC, TrackMeDBDetails.COLUMN_NAME_TS, TrackMeDBDetails.COLUMN_NAME_BATCH_ID,
-        TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID };
+        TrackMeDBDetails.COLUMN_NAME_ALT, TrackMeDBDetails.COLUMN_NAME_ACC, TrackMeDBDetails.COLUMN_NAME_TS,
+        TrackMeDBDetails.COLUMN_NAME_BATCH_ID, TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID };
     final Cursor c = db.query(TrackMeDBDetails.TABLE_LOCATIONS, columns, TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID + "=" + uploadID, null,
         null, null, TrackMeDBDetails.COLUMN_NAME_TS + " ASC", TrackMeDBDetails.LOCATIONS_QUERY_LIMIT);
     return c;
@@ -159,12 +164,12 @@ final class TrackMeDB {
   }
 
   private int moveLocations(final String tableName, final int uploadID, final String sessionID, final int batchID) {
-    final String where =  TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID + "=" + uploadID + " AND "
-        + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + "=\"" + sessionID + "\" AND " + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + "=" + batchID;
+    final String where = TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID + "=" + uploadID + " AND " + TrackMeDBDetails.COLUMN_NAME_SESSION_ID
+        + "=\"" + sessionID + "\" AND " + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + "=" + batchID;
 
     final String cols = TrackMeDBDetails.COLUMN_NAME_SESSION_ID + ", " + TrackMeDBDetails.COLUMN_NAME_LAT + ", "
-        + TrackMeDBDetails.COLUMN_NAME_LNG + ", " + TrackMeDBDetails.COLUMN_NAME_ACC + ", " + TrackMeDBDetails.COLUMN_NAME_TS + ", "
-        + TrackMeDBDetails.COLUMN_NAME_BATCH_ID;
+        + TrackMeDBDetails.COLUMN_NAME_LNG + ", " + TrackMeDBDetails.COLUMN_NAME_ALT+ ", " + TrackMeDBDetails.COLUMN_NAME_ACC + ", "
+        + TrackMeDBDetails.COLUMN_NAME_TS + ", " + TrackMeDBDetails.COLUMN_NAME_BATCH_ID;
 
     final String moveSql = "INSERT INTO " + tableName + " (" + cols + ") " + "SELECT " + cols + " FROM " + TrackMeDBDetails.TABLE_LOCATIONS
         + " WHERE " + where;
@@ -203,13 +208,25 @@ final class TrackMeDB {
       }
       final double latitude = c.getDouble(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_LAT));
       final double longitude = c.getDouble(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_LNG));
+      Double altitude;
+      try {
+        if (!c.isNull(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_ALT))) {
+          altitude = c.getDouble(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_ALT));
+          Log.d("altitude", "there");
+        } else {
+          Log.d("altitude", "not there");
+          altitude = -1111.0;
+        }
+      } catch (final android.database.SQLException e) {
+        altitude = -1111.0;
+      }
       final long accuracy = (long) c.getDouble(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_ACC));
       final long timeStamp = (long) c.getDouble(c.getColumnIndexOrThrow(TrackMeDBDetails.COLUMN_NAME_TS));
 
       final SessionBatchTuple mapKey = new SessionBatchTuple(sessionID, batchID);
       List<String> batch = map.get(mapKey);
-      final String location = "<loc lat=\"" + latitude + "\" lng=\"" + longitude + "\" acc=\"" + accuracy + "\" ts=\"" + timeStamp
-          + "\" />";
+      final String location = "<loc lat=\"" + latitude + "\" lng=\"" + longitude + "\" alt=\"" + altitude + "\" acc=\"" + accuracy
+          + "\" ts=\"" + timeStamp + "\" />";
 
       if (batch == null)
         map.put(mapKey, batch = new ArrayList<String>());

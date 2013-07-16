@@ -42,17 +42,19 @@ public final class LocationService extends Service implements LocationListener, 
   public static final String STATUS_WARMED_UP = "warmedUp";
   public static final String LATITUDE = "latitude";
   public static final String LONGITUDE = "longitude";
+  public static final String ALTITUDE = "altitude";
   public static final String ACCURACY = "accuracy";
   public static final String TIMESTAMP = "timestamp";
+
   private int captureFrequency;
   private Notification notification;
   private LocationClient myLocationClient;
   private LocationRequest myLocationRequest;
   private int errorCode;
   private boolean capturingLocations = false;
-  SQLiteDatabase myDb;
-  TrackMeDB db;
-  MyPreference myPreferences;
+  private SQLiteDatabase myDb;
+  private TrackMeDB db;
+  private MyPreference myPreferences;
 
   private final BroadcastReceiver broadCastReceiverLocationService = new BroadcastReceiver() {
 
@@ -141,7 +143,6 @@ public final class LocationService extends Service implements LocationListener, 
 
       intent.putExtra(PARAM_LOCATION_SERVICE_STATUS, STATUS_CAPTURING_LOCATIONS);
     } else {
-
       capturingLocations = false;
       Log.d(LOCATION_SERVICE_TAG, "capturingLocations" + capturingLocations);
 
@@ -209,6 +210,12 @@ public final class LocationService extends Service implements LocationListener, 
     final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_UI);
     intent.putExtra(LATITUDE, "" + location.getLatitude());
     intent.putExtra(LONGITUDE, "" + location.getLongitude());
+    if (location.hasAltitude()) {
+      final Double alt = location.getAltitude();
+      intent.putExtra(ALTITUDE, "" + alt);
+    } else {
+      intent.putExtra(ALTITUDE, "Altitude N/A");
+    }
     intent.putExtra(ACCURACY, "" + location.getAccuracy());
     intent.putExtra(TIMESTAMP, dateFormatted);
     LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
@@ -223,11 +230,7 @@ public final class LocationService extends Service implements LocationListener, 
     } else {
       Log.d(LOCATION_SERVICE_TAG, "Google Play Service Not Available");
 
-      final Intent dialogIntent = new Intent(getBaseContext(), DialogActivity.class);
-      dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      dialogIntent.putExtra(DialogActivity.STR_ERROR_TYPE, DialogActivity.STR_ERROR_GOOGLE);
-      dialogIntent.putExtra(DialogActivity.STR_ERROR_CODE, errorCode);
-      getApplication().startActivity(dialogIntent);
+      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, errorCode));
 
       return false;
     }
@@ -257,14 +260,20 @@ public final class LocationService extends Service implements LocationListener, 
       mainActivityBroadCastintent.putExtra(PARAM_LOCATION_SERVICE_STATUS, ERROR_STARTING_SERVICE);
       LocalBroadcastManager.getInstance(this).sendBroadcast(mainActivityBroadCastintent);
 
-      final Intent dialogIntent = new Intent(getBaseContext(), DialogActivity.class);
-      dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      dialogIntent.putExtra(DialogActivity.STR_ERROR_TYPE, DialogActivity.STR_ERROR_GOOGLE);
-      dialogIntent.putExtra(DialogActivity.STR_ERROR_CODE, errorCode);
-      getApplication().startActivity(dialogIntent);
+      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, errorCode));
 
       stopSelf();
     }
+  }
+
+  private Intent mkDialogIntent(final String errorType, final int errorCode) {
+
+    final Intent dialogIntent = new Intent(getBaseContext(), DialogActivity.class);
+    dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    dialogIntent.putExtra(DialogActivity.STR_ERROR_TYPE, errorType);
+    dialogIntent.putExtra(DialogActivity.STR_ERROR_CODE, errorCode);
+
+    return dialogIntent;
   }
 
   @Override

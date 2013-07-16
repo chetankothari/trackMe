@@ -16,8 +16,9 @@ final class TrackMeDBHelper extends SQLiteOpenHelper {
   private static final String SQL_CREATE_LOCATION_TABLE = "CREATE TABLE " + TrackMeDBDetails.TABLE_LOCATIONS + " (" + TrackMeDBDetails._ID
       + INTEGER_TYPE + " PRIMARY KEY" + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + TEXT_TYPE + COMMA_SEP
       + TrackMeDBDetails.COLUMN_NAME_LAT + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_LNG + REAL_TYPE + COMMA_SEP
-      + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP
-      + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID + INTEGER_TYPE + ")";
+      + TrackMeDBDetails.COLUMN_NAME_ALT + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP
+      + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + COMMA_SEP
+      + TrackMeDBDetails.COLUMN_NAME_UPLOAD_ID + INTEGER_TYPE + ")";
 
   private static final String SQL_CREATE_SESSION_TABLE = "CREATE TABLE " + TrackMeDBDetails.TABLE_SESSION + " (" + TrackMeDBDetails._ID
       + INTEGER_TYPE + " PRIMARY KEY" + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + TEXT_TYPE + COMMA_SEP
@@ -26,8 +27,8 @@ final class TrackMeDBHelper extends SQLiteOpenHelper {
   private static final String SQL_CREATE_ARCHIVED_LOCATIONS_TABLE = "CREATE TABLE " + TrackMeDBDetails.TABLE_ARCHIVED_LOCATIONS + " ("
       + TrackMeDBDetails._ID + INTEGER_TYPE + " PRIMARY KEY" + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + TEXT_TYPE + COMMA_SEP
       + TrackMeDBDetails.COLUMN_NAME_LAT + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_LNG + REAL_TYPE + COMMA_SEP
-      + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP
-      + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + ")";
+      + TrackMeDBDetails.COLUMN_NAME_ALT + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP
+      + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + ")";
 
   private static final String SQL_DELETE_LOCATION_TABLE = "DROP TABLE IF EXISTS " + TrackMeDBDetails.TABLE_LOCATIONS;
   private static final String SQL_DELETE_SESSION_TABLE = "DROP TABLE IF EXISTS " + TrackMeDBDetails.TABLE_SESSION;
@@ -46,8 +47,9 @@ final class TrackMeDBHelper extends SQLiteOpenHelper {
   public static String makeSessionTableSQL(final String tableName) {
     final String sessionTable = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + TrackMeDBDetails._ID + INTEGER_TYPE + " PRIMARY KEY"
         + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + TEXT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_LAT + REAL_TYPE
-        + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_LNG + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE
-        + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + ")";
+        + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_LNG + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_ALT + REAL_TYPE + COMMA_SEP
+        + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP
+        + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + ")";
     return sessionTable;
   }
 
