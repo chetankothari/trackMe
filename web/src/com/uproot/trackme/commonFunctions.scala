@@ -5,6 +5,7 @@ import com.google.appengine.api.datastore.EntityNotFoundException
 import com.google.appengine.api.datastore.Key
 import com.google.appengine.api.datastore.KeyFactory
 import com.google.appengine.api.users.UserServiceFactory
+import com.typesafe.scalalogging.slf4j.Logging
 
 import javax.servlet.http.HttpServletRequest
 case class MenuEntry(title: String, icon: String, url: String)
@@ -24,7 +25,7 @@ class Menu(entries: Seq[MenuEntry]) {
   }
 }
 
-class CommonFunctions(req: HttpServletRequest) {
+class CommonFunctions(req: HttpServletRequest) extends Logging {
   import Helper._
   private val userPrincipal = req.getUserPrincipal
   private val userService = UserServiceFactory.getUserService
@@ -99,10 +100,11 @@ object Helper {
   val KIND_BATCHES = "batches"
   val COLUMN_BATCH_ID = "batchID"
   val KIND_LOCATIONS = "locations"
-  val COLUMN_LATITUDE = "latitude"
-  val COLUMN_LONGITUDE = "longitude"
-  val COLUMN_ACCURACY = "accuracy"
-  val COLUMN_TIME_STAMP = "timestamp"
+  val COLUMN_LATITUDE = "lat"
+  val COLUMN_LONGITUDE = "lng"
+  val COLUMN_ALTITUDE = "alt"
+  val COLUMN_ACCURACY = "acc"
+  val COLUMN_TIME_STAMP = "ts"
   val XML_TAG_BATCH = "batch"
   val XML_TAG_LOCATION = "loc"
   val XML_ATTRIBUTE_UPLOAD_ID = "uid"
@@ -112,6 +114,7 @@ object Helper {
   val XML_ATTRIBUTE_PASS_KEY = "passkey"
   val XML_ATTRIBUTE_LATITUDE = "lat"
   val XML_ATTRIBUTE_LONGITUDE = "lng"
+  val XML_ATTRIBUTE_ALTITUDE = "alt"
   val XML_ATTRIBUTE_ACCURACY = "acc"
   val XML_ATTRIBUTE_TIME_STAMP = "ts"
   val PARAM_VERSION_NO = "versionNo";
@@ -122,36 +125,6 @@ object Helper {
   val LOCATIONS_LIMIT = 1000
   val datastore = DatastoreServiceFactory.getDatastoreService
 
-  def userExistsFunc(userId: String) = {
-    try {
-      val userKey = KeyFactory.createKey(KIND_USER_DETAILS, userId)
-      datastore.get(userKey)
-      true
-    } catch {
-      case _: IllegalArgumentException | _: EntityNotFoundException => false
-    }
-  }
-
-  def sessionExistsFunc(userId: String, sessionId: String) = {
-    try {
-      val sessionKey = mkSessionKey(mkUserKey(userId), sessionId)
-      datastore.get(sessionKey)
-      true
-    } catch {
-      case _: IllegalArgumentException | _: EntityNotFoundException => false
-    }
-  }
-
-  def batchExistsFunc(userId: String, sessionId: String, batchId: Int) = {
-    try {
-      val batchKey = mkBatchKey(mkSessionKey(mkUserKey(userId), sessionId), batchId)
-      datastore.get(batchKey)
-      true
-    } catch {
-      case _: IllegalArgumentException | _: EntityNotFoundException => false
-    }
-  }
-
   def getUserEntity(userId: String) = {
     datastore.get(mkUserKey(userId))
   }
@@ -160,12 +133,53 @@ object Helper {
     KeyFactory.createKey(KIND_USER_DETAILS, userId)
   }
 
+  def userExistsFunc(userId: String): Boolean = {
+    userExistsFunc(mkUserKey(userId))
+  }
+
+  def userExistsFunc(userKey: Key): Boolean = {
+    try {
+      datastore.get(userKey)
+      true
+    } catch {
+      case _: IllegalArgumentException | _: EntityNotFoundException => false
+    }
+  }
+
   def mkSessionKey(userKey: Key, sessionId: String) = {
     KeyFactory.createKey(userKey, KIND_SESSIONS, sessionId)
   }
 
+  def sessionExistsFunc(userId: String, sessionId: String): Boolean = {
+    val sessionKey = mkSessionKey(mkUserKey(userId), sessionId)
+    sessionExistsFunc(sessionKey)
+  }
+
+  def sessionExistsFunc(sessionKey: Key): Boolean = {
+    try {
+      datastore.get(sessionKey)
+      true
+    } catch {
+      case _: IllegalArgumentException | _: EntityNotFoundException => false
+    }
+  }
+
   def mkBatchKey(sessionKey: Key, batchId: Int) = {
     KeyFactory.createKey(sessionKey, KIND_BATCHES, batchId)
+  }
+
+  def batchExistsFunc(userId: String, sessionId: String, batchId: Int): Boolean = {
+    val batchKey = mkBatchKey(mkSessionKey(mkUserKey(userId), sessionId), batchId)
+    batchExistsFunc(batchKey)
+  }
+
+  def batchExistsFunc(batchKey: Key): Boolean = {
+    try {
+      datastore.get(batchKey)
+      true
+    } catch {
+      case _: IllegalArgumentException | _: EntityNotFoundException => false
+    }
   }
 
   def createTemplate(menu: xml.Node, userName: String, body: xml.Node, jScript: Option[String] = None, logoutURL: String) = {

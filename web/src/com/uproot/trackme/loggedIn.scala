@@ -3,10 +3,12 @@ package com.uproot.trackme;
 import java.util.ArrayList
 import java.util.ConcurrentModificationException
 import java.util.zip.GZIPInputStream
+
 import scala.Option.option2Iterable
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
+
 import com.google.appengine.api.datastore.Entity
 import com.google.appengine.api.datastore.FetchOptions
 import com.google.appengine.api.datastore.KeyFactory
@@ -15,6 +17,8 @@ import com.google.appengine.api.datastore.Query.FilterOperator
 import com.google.appengine.api.datastore.Query.FilterPredicate
 import com.google.appengine.api.datastore.Query.SortDirection
 import com.google.appengine.api.users.UserServiceFactory
+import com.typesafe.scalalogging.slf4j.Logging
+
 import Helper.COLUMN_ACCURACY
 import Helper.COLUMN_BATCH_ID
 import Helper.COLUMN_LATITUDE
@@ -26,17 +30,23 @@ import Helper.COLUMN_TIME_STAMP
 import Helper.COLUMN_USER_ID
 import Helper.COLUMN_VERSION_NO
 import Helper.GRACE_PERIOD
+import Helper.KIND_BATCHES
 import Helper.KIND_LOCATIONS
+import Helper.KIND_SESSIONS
 import Helper.KIND_USER_DETAILS
 import Helper.LOCATIONS_LIMIT
+import Helper.PARAM_PASS_KEY
+import Helper.PARAM_SHARE_WITH
+import Helper.PARAM_VERSION_NO
+import Helper.batchExistsFunc
 import Helper.datastore
 import Helper.getUserEntity
 import Helper.mkBatchKey
 import Helper.mkSessionKey
 import Helper.mkUserKey
+import Helper.sessionExistsFunc
 import Helper.userExistsFunc
 import javax.servlet.http.HttpServletRequest
-import com.typesafe.scalalogging.slf4j.Logging
 
 class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
 
@@ -101,8 +111,8 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
       }
       if (serverVersionNo == updateVersionNo) {
         userEntity.setProperty(COLUMN_USER_ID, currUserId)
-        userEntity.setProperty(COLUMN_VERSION_NO, serverVersionNo + 1L)
-        userEntity.setProperty(COLUMN_PASS_KEY, passKey)
+        userEntity.setUnindexedProperty(COLUMN_VERSION_NO, serverVersionNo + 1L)
+        userEntity.setUnindexedProperty(COLUMN_PASS_KEY, passKey)
         if (validUsers.nonEmpty) {
           userEntity.setProperty(COLUMN_SHARED_WITH, (validUsers).asJava)
         } else {
@@ -262,27 +272,31 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
         val userid = upload.userid
         val sid = batch.sid
         val bid = batch.bid
+        val userKey = mkUserKey(userid)
+        val sessionKey = mkSessionKey(userKey, sid)
+        val batchKey = mkBatchKey(sessionKey, bid)
         val locations = batch.locations
-        if (locations.forall(_.isValid(maxTime))) {
-          val userKey = mkUserKey(userid)
-          val sessionKey = mkSessionKey(userKey, sid)
-          val batchKey = mkBatchKey(sessionKey, bid)
+        if (locations.forall(_.isValid(maxTime)) && !batchExistsFunc(batchKey)) {
 
-          val sessionEntity = new Entity(KIND_SESSIONS, sessionKey)
-          sessionEntity.setProperty(COLUMN_SESSION_ID, sid)
-          datastore.put(sessionEntity)
-          logger.info(s"Session $sid Added/Updated")
+          if (!sessionExistsFunc(sessionKey)) {
+            val sessionEntity = new Entity(sessionKey)
+            datastore.put(sessionEntity)
+            logger.info(s"Session $sid Added/Updated")
+          }
 
-          val batchEntity = new Entity(KIND_BATCHES, batchKey)
-          batchEntity.setProperty(COLUMN_BATCH_ID, bid)
+          val batchEntity = new Entity(batchKey)
           datastore.put(batchEntity)
           logger.info(s"Batch $bid Added")
 
           val locationEntities: List[Entity] = batch.locations.map { loc =>
-            val batchLocations = new Entity(KIND_LOCATIONS, batchKey)
-            batchLocations.setProperty(COLUMN_LATITUDE, loc.latLong.latitude)
-            batchLocations.setProperty(COLUMN_LONGITUDE, loc.latLong.longitude)
-            batchLocations.setProperty(COLUMN_ACCURACY, loc.accuracy)
+            val batchLocations = new Entity(KIND_LOCATIONS, loc.timeStamp, batchKey)
+            batchLocations.setProperty(COLUMN_LATITUDE, loc.latLongAlt.latitude)
+            batchLocations.setProperty(COLUMN_LONGITUDE, loc.latLongAlt.longitude)
+            if (!(loc.latLongAlt.altitude == -1111)) {
+              println(loc.latLongAlt.altitude)
+              batchLocations.setUnindexedProperty(COLUMN_ALTITUDE, loc.latLongAlt.altitude)
+            }
+            batchLocations.setUnindexedProperty(COLUMN_ACCURACY, loc.accuracy)
             batchLocations.setProperty(COLUMN_TIME_STAMP, loc.timeStamp)
             batchLocations
           }
@@ -325,7 +339,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
       val locCount = usersLastLocation.size
       logger.info(s"Retrived $locCount lastLocations")
       usersLastLocation.map { location =>
-        val latLong = LatLong(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
+        val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
         val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
         val accuracy = location.getProperty(COLUMN_ACCURACY).asInstanceOf[Long]
         (sharerId, Location(latLong, accuracy, timeStamp))
@@ -340,7 +354,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
     val locCount = locations.length
     logger.info(s"Retrived $locCount locations")
     (locations.map { location =>
-      val latLong = LatLong(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
+      val latLong = LatLongAlt(location.getProperty(COLUMN_LATITUDE).asInstanceOf[Double], location.getProperty(COLUMN_LONGITUDE).asInstanceOf[Double])
       val timeStamp = location.getProperty(COLUMN_TIME_STAMP).asInstanceOf[Long]
       val accuracy = location.getProperty(COLUMN_ACCURACY).asInstanceOf[Long]
       (Location(latLong, accuracy, timeStamp)).mkJSON
