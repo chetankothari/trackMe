@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="server_location_default_debug">http://10.0.0.12:8888</string>
-    <string name="user_id_debug">chetan.cmk@gmail.com</string>
-    <string name="passkey_debug">123456</string>
+    <string name="server_location_default_debug">http://example.com</string>
+    <string name="user_id_debug">test</string>
+    <string name="passkey_debug">test</string>
 
 </resources>
