@@ -8,9 +8,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 import android.app.AlarmManager;
 import android.app.Notification;
@@ -78,31 +75,26 @@ public final class UploadService extends Service {
           http.close();
 
           if (code == HttpStatus.SC_OK) {
-            final Document doc = ResponseParsing.getDomElement(ResponseParsing.getXML(response));
+            final TrackMeResponse serverResponse = new TrackMeResponse(response);
+            final int uploadID = serverResponse.uploadId;
 
-            final int uploadID = Integer.parseInt(doc.getDocumentElement().getAttribute("uid"));
+            for (BatchResponse batch : serverResponse.batchResponse) {
 
-            final NodeList nl = doc.getElementsByTagName("batch");
-
-            for (int i = 0; i < nl.getLength(); i++) {
-              final Element e = (Element) nl.item(i);
-              final String sessionID = e.getAttribute("sid");
-              final int batchID = Integer.parseInt(e.getAttribute("bid"));
-
-              if (e.getAttribute("accepted").equals("true")) {
-                Log.d(UPLOAD_SERVICE_TAG, "Boolean New " + e.getAttribute("accepted"));
-                final int uploadedCount = db.moveLocationsToSessionTable(uploadID, sessionID, batchID);
+              if (batch.status.equals("true")) {
+                Log.d(UPLOAD_SERVICE_TAG, "Boolean New " + batch.status);
+                final int uploadedCount = db.moveLocationsToSessionTable(uploadID, batch.sessionId, batch.batchId);
                 updatePreferences.addUploadedCount(uploadedCount);
                 final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
                 LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
               } else {
-                final int archivedCount = db.archiveLocations(uploadID, sessionID, batchID);
+                final int archivedCount = db.archiveLocations(uploadID, batch.sessionId, batch.batchId);
                 updatePreferences.addArchivedCount(archivedCount);
                 final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
                 LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
               }
 
             }
+
           } else {
             final String message = "Server response:\n" + response.getStatusLine().getReasonPhrase();
             getApplication().startActivity(UserError.makeIntent(getBaseContext(), message));
