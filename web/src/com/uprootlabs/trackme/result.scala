@@ -1,4 +1,4 @@
-package com.uproot.trackme;
+package com.uprootlabs.trackme;
 
 sealed abstract class Result()
 
@@ -12,6 +12,6 @@ case class JsonContent(jContent: String, respCode: Int = 200) extends Content("a
 
 case class ResponseStatus(success: Boolean, message: String) {
   def mkJson = "{\"responseStatus\":{\"success\":\"" + success + "\", \"message\":\"" + message + "\"}}"
-  
+
   def mkXML = (<responseStatus success={success.toString} message={message} />)
 }

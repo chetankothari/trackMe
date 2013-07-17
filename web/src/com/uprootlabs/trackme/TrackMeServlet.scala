@@ -1,4 +1,4 @@
-package com.uproot.trackme;
+package com.uprootlabs.trackme;
 
 import java.io.IOException
 import java.security.Principal
