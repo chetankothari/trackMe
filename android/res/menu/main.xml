@@ -7,7 +7,7 @@
         android:id="@+id/action_upload"
         android:title="@string/upload"/>
     <item
-        android:id="@+id/action_debug"
-        android:title="Debug"/>
+        android:id="@+id/action_generate_locations"
+        android:title="Generate Locations"/>
 
 </menu>

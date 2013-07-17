@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Editable;
@@ -81,7 +82,7 @@ public final class MainActivity extends Activity {
     debug = (TextView) findViewById(R.id.debug);
     valueLat = (TextView) findViewById(R.id.lat);
     valueLng = (TextView) findViewById(R.id.lng);
-    valueAlt= (TextView) findViewById(R.id.alt);
+    valueAlt = (TextView) findViewById(R.id.alt);
     valueAccuracy = (TextView) findViewById(R.id.accuracy);
     valueTimeStamp = (TextView) findViewById(R.id.timeStamp);
     startStopButton = (Button) findViewById(R.id.startStop);
@@ -157,9 +158,33 @@ public final class MainActivity extends Activity {
       Log.d(MAIN_ACTIVITY_TAG, "Upload");
       break;
 
+    case R.id.action_generate_locations:
+      final Double lat = 15.8842602;
+      final Double lng = 74.5028338;
+      final int interval = 5;
+      final int duration = 3;
+      final int count = generateLocations(lat, lng, interval, duration);
+      Log.d(MAIN_ACTIVITY_TAG, "generated " + count + " locations");
+      break;
+
     }
 
     return true;
+  }
+
+  private int generateLocations(Double lat, Double lng, final int interval, final int duration) {
+      final SQLiteDatabase myDb = new TrackMeDBHelper(this).getWritableDatabase();
+      final TrackMeDB db = new TrackMeDB(myDb, this);
+      long curTime = System.currentTimeMillis() - (duration *2 * 3600000);
+      final int count = (duration * 3600) / interval;
+      for (int i = 1; i <= count; i++) {
+        db.insertLocation(lat, lng, curTime);
+        curTime += interval * 1000;
+        lat = (lat + .00357) % 90;
+        lng = (lng + .00357) % 180;
+      }
+
+    return count;
   }
 
   public void onClickStartStop(final View v) {

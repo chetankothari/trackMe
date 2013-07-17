@@ -47,6 +47,18 @@ final class TrackMeDB {
     }
   }
 
+  public void insertLocation(final Double lat, final Double lng, final long timeStamp) {
+    final String sessionID = myPreferences.getSessionID();
+    final long acc = 12;
+    final ContentValues values = new ContentValues();
+    values.put(COLUMN_NAME_SESSION_ID, sessionID);
+    values.put(COLUMN_NAME_LAT, (lat * TrackMeHelper.PI_BY_180));
+    values.put(COLUMN_NAME_LNG, (lng * TrackMeHelper.PI_BY_180));
+    values.put(COLUMN_NAME_ACC, acc);
+    values.put(COLUMN_NAME_TS, timeStamp);
+    db.insert(TABLE_LOCATIONS, null, values);
+  }
+
   // private Cursor getLocations(final String selection, final String[]
   // selectionArgs, final String orderBy, final String limit) {
   //
