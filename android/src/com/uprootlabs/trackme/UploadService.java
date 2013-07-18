@@ -2,6 +2,8 @@ package com.uprootlabs.trackme;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -16,7 +18,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.http.AndroidHttpClient;
@@ -47,7 +51,14 @@ public final class UploadService extends Service {
           int retryCount = 0;
           int code = -1;
           HttpResponse response = null;
-          final String locations = db.getLocationsAsXML(uploadTime);
+
+          final int uploadId = myPreference.getNewUploadID();
+          db.assignUploadID(uploadId, uploadTime);
+          Cursor c = db.getLocationsByUploadID(uploadId);
+          final Map<SessionBatchTuple, List<Location>> sessionLocations = db.batching(c, uploadId);
+          c.close();
+          final String locations = db.locationsToXML(sessionLocations, uploadId);
+
           Log.d(UPLOAD_SERVICE_TAG, locations);
           final AndroidHttpClient http = AndroidHttpClient.newInstance("TrackMe");
           final HttpPost httpPost = new HttpPost(serverURL + "/api/v1/xml/store");
@@ -75,7 +86,7 @@ public final class UploadService extends Service {
           http.close();
 
           if (code == HttpStatus.SC_OK) {
-            final TrackMeResponse serverResponse = new TrackMeResponse(response);
+            final UploadResponse serverResponse = UploadResponse.parse(response);
             final int uploadID = serverResponse.uploadId;
 
             for (BatchResponse batch : serverResponse.batchResponse) {

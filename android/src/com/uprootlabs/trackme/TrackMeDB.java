@@ -23,40 +23,41 @@ final class TrackMeDB {
   }
 
   public boolean insertNewLocations(final Location location, final long timeStamp) {
-    final double lat = location.getLatitude() * TrackMeHelper.PI_BY_180;
-    final double lng = location.getLongitude() * TrackMeHelper.PI_BY_180;
-    final long acc = (long) location.getAccuracy();
-    final String sessionID = myPreferences.getSessionID();
+    if (location != null && location.hasAccuracy()) {
+      final double lat = location.getLatitude() * TrackMeHelper.PI_BY_180;
+      final double lng = location.getLongitude() * TrackMeHelper.PI_BY_180;
+      final long acc = (long) location.getAccuracy();
+      final String sessionID = myPreferences.getSessionID();
 
-    if (acc <= LOCATIONS_ACCURACY_LIMIT) {
-      final ContentValues values = new ContentValues();
-      values.put(COLUMN_NAME_SESSION_ID, sessionID);
-      values.put(COLUMN_NAME_LAT, lat);
-      values.put(COLUMN_NAME_LNG, lng);
-      if (location.hasAltitude()) {
-        final double alt = location.getAltitude();
-        values.put(COLUMN_NAME_ALT, alt);
+      if (acc <= LOCATIONS_ACCURACY_LIMIT) {
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_NAME_SESSION_ID, sessionID);
+        values.put(COLUMN_NAME_LAT, lat);
+        values.put(COLUMN_NAME_LNG, lng);
+        if (location.hasAltitude()) {
+          final double alt = (long) location.getAltitude();
+          values.put(COLUMN_NAME_ALT, alt);
+        }
+        values.put(COLUMN_NAME_ACC, acc);
+        values.put(COLUMN_NAME_TS, timeStamp);
+
+        db.insert(TABLE_LOCATIONS, null, values);
+        return true;
+      } else {
+        return false;
       }
-      values.put(COLUMN_NAME_ACC, acc);
-      values.put(COLUMN_NAME_TS, timeStamp);
-
-      db.insert(TABLE_LOCATIONS, null, values);
-      return true;
     } else {
       return false;
     }
   }
 
   public void insertLocation(final Double lat, final Double lng, final long timeStamp) {
-    final String sessionID = myPreferences.getSessionID();
     final long acc = 12;
-    final ContentValues values = new ContentValues();
-    values.put(COLUMN_NAME_SESSION_ID, sessionID);
-    values.put(COLUMN_NAME_LAT, (lat * TrackMeHelper.PI_BY_180));
-    values.put(COLUMN_NAME_LNG, (lng * TrackMeHelper.PI_BY_180));
-    values.put(COLUMN_NAME_ACC, acc);
-    values.put(COLUMN_NAME_TS, timeStamp);
-    db.insert(TABLE_LOCATIONS, null, values);
+    Location l = new Location("");
+    l.setLatitude(lat);
+    l.setLongitude(lng);
+    l.setAccuracy(acc);
+    insertNewLocations(l, timeStamp);
   }
 
   // private Cursor getLocations(final String selection, final String[]
@@ -72,34 +73,38 @@ final class TrackMeDB {
   // return c;
   // }
 
-  public String getLocationsAsXML(final long time) {
-    final int uploadID = myPreferences.getNewUploadID();
-    assignUploadID(uploadID, time);
-    final Cursor c = getLocationsByUploadID(uploadID);
-
-    final Map<SessionBatchTuple, List<String>> sessionLocations = batching(c, uploadID);
-    return locationsToXML(sessionLocations, uploadID);
+  public static String mkString(final Location l) {
+    if (l != null) {
+      if (l.hasAltitude()) {
+        return "<loc lat=\"" + l.getLatitude() + "\" lng=\"" + l.getLongitude() + "\" alt=\"" + (long) l.getAltitude() + "\" acc=\""
+            + (long) l.getAccuracy() + "\" ts=\"" + l.getTime() + "\" />";
+      } else {
+        return "<loc lat=\"" + l.getLatitude() + "\" lng=\"" + l.getLongitude() + "\" acc=\"" + (long) l.getAccuracy() + "\" ts=\""
+            + l.getTime() + "\" />";
+      }
+    } else
+      return null;
   }
 
-  private String mkString(final List<String> arrayString) {
-    final StringBuffer batch = new StringBuffer();
-    for (final String loc : arrayString) {
-      batch.append(loc);
+  public static String mkString(final List<Location> locations) {
+    final StringBuffer locationsString = new StringBuffer();
+    for (final Location l : locations) {
+      locationsString.append(mkString(l));
     }
-    return batch.toString();
+    return locationsString.toString();
   }
 
-  private String locationsToXML(final Map<SessionBatchTuple, List<String>> sessions, final int uploadID) {
+  public String locationsToXML(final Map<SessionBatchTuple, List<Location>> sessions, final int uploadID) {
     final StringBuffer locationsAsXML = new StringBuffer();
     final String userID = myPreferences.getUserID();
     final String passKey = myPreferences.getPassKey();
     locationsAsXML.append("<upload userid=\"" + userID + "\" passkey=\"" + passKey + "\" uid=\"" + uploadID + "\">");
-    for (final Map.Entry<SessionBatchTuple, List<String>> session : sessions.entrySet()) {
+    for (final Map.Entry<SessionBatchTuple, List<Location>> session : sessions.entrySet()) {
       final StringBuffer batch = new StringBuffer();
       final SessionBatchTuple t = session.getKey();
-      final String locations = mkString(session.getValue());
+      final List<Location> locations = session.getValue();
       batch.append("<batch sid=\"" + t.getSessionID() + "\" bid=\"" + t.getBatchID() + "\">");
-      batch.append(locations);
+      batch.append(mkString(locations));
       batch.append("</batch>");
       locationsAsXML.append(batch);
     }
@@ -107,7 +112,7 @@ final class TrackMeDB {
     return locationsAsXML.toString();
   }
 
-  private Cursor getLocationsByUploadID(final int uploadID) {
+  public Cursor getLocationsByUploadID(final int uploadID) {
     final String[] columns = { COLUMN_NAME_SESSION_ID, COLUMN_NAME_LAT, COLUMN_NAME_LNG, COLUMN_NAME_ALT, COLUMN_NAME_ACC, COLUMN_NAME_TS,
         COLUMN_NAME_BATCH_ID, COLUMN_NAME_UPLOAD_ID };
     final Cursor c = db.query(TABLE_LOCATIONS, columns, COLUMN_NAME_UPLOAD_ID + "=" + uploadID, null, null, null, COLUMN_NAME_TS + " ASC",
@@ -196,14 +201,14 @@ final class TrackMeDB {
     return moveLocations(sessionID, uploadID, sessionID, batchID);
   }
 
-  private Map<SessionBatchTuple, List<String>> batching(final Cursor c, final int uploadID) {
-    final Map<SessionBatchTuple, List<String>> map = new HashMap<SessionBatchTuple, List<String>>();
+  public Map<SessionBatchTuple, List<Location>> batching(final Cursor c, final int uploadID) {
+    final Map<SessionBatchTuple, List<Location>> map = new HashMap<SessionBatchTuple, List<Location>>();
     final Map<String, Integer> sessionBatches = new HashMap<String, Integer>();
     int batchID;
     c.moveToFirst();
     do {
       final String sessionID = c.getString(c.getColumnIndexOrThrow(COLUMN_NAME_SESSION_ID));
-      if (sessionBatches.get(sessionID) == null) {
+      if (sessionBatches.get(sessionID) == null && c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_BATCH_ID))) {
         sessionBatches.put(sessionID, getNewBatchID(sessionID));
       }
       try {
@@ -219,22 +224,29 @@ final class TrackMeDB {
       final long accuracy = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ACC));
       final long timeStamp = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_TS));
       final SessionBatchTuple mapKey = new SessionBatchTuple(sessionID, batchID);
-      List<String> batch = map.get(mapKey);
-      String location;
+      List<Location> batch = map.get(mapKey);
+      Location location;
       if (!c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_ALT))) {
         final Double altitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ALT));
-        location = "<loc lat=\"" + latitude + "\" lng=\"" + longitude + "\" alt=\"" + altitude + "\" acc=\"" + accuracy + "\" ts=\""
-            + timeStamp + "\" />";
+        location = new Location("");
+        location.setLatitude(latitude);
+        location.setLongitude(longitude);
+        location.setAltitude(altitude);
+        location.setAccuracy(accuracy);
+        location.setTime(timeStamp);
       } else {
-        location = "<loc lat=\"" + latitude + "\" lng=\"" + longitude + "\" acc=\"" + accuracy + "\" ts=\"" + timeStamp + "\" />";
+        location = new Location("");
+        location.setLatitude(latitude);
+        location.setLongitude(longitude);
+        location.setAccuracy(accuracy);
+        location.setTime(timeStamp);
       }
 
       if (batch == null)
-        map.put(mapKey, batch = new ArrayList<String>());
+        map.put(mapKey, batch = new ArrayList<Location>());
       batch.add(location);
 
     } while (c.moveToNext());
-    c.close();
 
     updateBatchIDs(sessionBatches, uploadID);
 
