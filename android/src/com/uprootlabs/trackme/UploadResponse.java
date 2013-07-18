@@ -21,46 +21,47 @@ import org.xml.sax.SAXException;
 import android.net.ParseException;
 import android.util.Log;
 
-final class TrackMeResponse {
+final class UploadResponse {
   public int uploadId;
   public List<BatchResponse> batchResponse;
 
-  public TrackMeResponse(final HttpResponse resp) {
-    final String response = getResponseString(resp);
-    final Document dom = getDom(response);
-    uploadId = Integer.parseInt(dom.getDocumentElement().getAttribute("uid"));
-    final NodeList nl = dom.getElementsByTagName("batch");
-    batchResponse = getBatchResponse(nl);
-  }
-
-  private List<BatchResponse> getBatchResponse(final NodeList nl) {
+  private static List<BatchResponse> getBatchResponse(final NodeList nl) {
     List<BatchResponse> batchResp = new ArrayList<BatchResponse>();
     for (int i = 0; i < nl.getLength(); i++) {
       final Element e = (Element) nl.item(i);
-      batchResp.add(new BatchResponse(e));
+      if (e.getAttribute("sid").equals("") | e.getAttribute("bid").equals("") | e.getAttribute("accepted").equals("")) {
+
+      } else {
+        String sessionId = e.getAttribute("sid");
+        int batchId = Integer.parseInt(e.getAttribute("bid"));
+        String status = e.getAttribute("accepted");
+        batchResp.add(new BatchResponse(sessionId, batchId, status));
+      }
+
     }
 
     return batchResp;
 
   }
 
-  private String getResponseString(HttpResponse resp) {
+  public static UploadResponse parse(HttpResponse resp) {
 
     final HttpEntity entity = resp.getEntity();
+    String response;
 
     try {
-      return EntityUtils.toString(entity);
+      response = EntityUtils.toString(entity);
     } catch (final ParseException e) {
-      e.printStackTrace();
-      return "";
+      response = "ParseException";
     } catch (final IOException e) {
-      e.printStackTrace();
-      return "";
+      response = "IOException";
     }
+
+    return parse(response);
 
   }
 
-  private Document getDom(String xml) {
+  public static UploadResponse parse(String xml) {
     Document doc = null;
     final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     try {
@@ -70,6 +71,21 @@ final class TrackMeResponse {
       final InputSource is = new InputSource();
       is.setCharacterStream(new StringReader(xml));
       doc = db.parse(is);
+      UploadResponse uploadResponse = new UploadResponse();
+      if (doc.getDocumentElement().getAttribute("uid").equals("")) {
+        return null;
+      } else {
+
+        if(doc.getElementsByTagName("upload") != null){
+        uploadResponse.uploadId = Integer.parseInt(doc.getDocumentElement().getAttribute("uid"));
+        final NodeList nl = doc.getElementsByTagName("batch");
+        uploadResponse.batchResponse = getBatchResponse(nl);
+        return uploadResponse;
+        } else {
+          return null;
+        }
+
+      }
 
     } catch (final ParserConfigurationException e) {
       Log.e("Error: ", e.getMessage());
@@ -81,7 +97,7 @@ final class TrackMeResponse {
       Log.e("Error: ", e.getMessage());
       return null;
     }
-    return doc;
+
   }
 
 }
