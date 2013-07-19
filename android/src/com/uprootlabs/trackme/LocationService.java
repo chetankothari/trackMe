@@ -198,7 +198,7 @@ public final class LocationService extends Service implements LocationListener, 
   public void onLocationChanged(final Location location) {
     final long timeStamp = System.currentTimeMillis();
     Log.d(LOCATION_SERVICE_TAG, "Locations Changed");
-    db.insertNewLocations(location, timeStamp);
+    db.insertNewLocation(location, timeStamp);
 
     final Date date = new Date(timeStamp);
     final DateFormat formatter = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss", Locale.US);

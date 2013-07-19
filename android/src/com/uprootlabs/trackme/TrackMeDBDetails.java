@@ -18,7 +18,7 @@ final class TrackMeDBDetails implements BaseColumns {
   public static final String COLUMN_NAME_TS = "timestamp";
   public static final int DB_VERSION = 1;
   public static final String DATABASE_NAME = "TrackMe.db";
-  public static final String LOCATIONS_QUERY_LIMIT = "700";
+  public static final String LOCATIONS_QUERY_LIMIT = "500";
   public static final int LOCATIONS_ACCURACY_LIMIT = 3000;
   public static final int FIRST_BATCH_ID = 0;
 }

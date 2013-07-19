@@ -12,7 +12,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 
 import static com.uprootlabs.trackme.TrackMeDBDetails.*;
-
 final class TrackMeDB {
   private final SQLiteDatabase db;
   private final MyPreference myPreferences;
@@ -22,7 +21,7 @@ final class TrackMeDB {
     myPreferences = new MyPreference(context);
   }
 
-  public boolean insertNewLocations(final Location location, final long timeStamp) {
+  public boolean insertNewLocation(final Location location, final long timeStamp) {
     if (location != null && location.hasAccuracy()) {
       final double lat = location.getLatitude() * TrackMeHelper.PI_BY_180;
       final double lng = location.getLongitude() * TrackMeHelper.PI_BY_180;
@@ -57,7 +56,7 @@ final class TrackMeDB {
     l.setLatitude(lat);
     l.setLongitude(lng);
     l.setAccuracy(acc);
-    insertNewLocations(l, timeStamp);
+    insertNewLocation(l, timeStamp);
   }
 
   // private Cursor getLocations(final String selection, final String[]
@@ -74,7 +73,7 @@ final class TrackMeDB {
   // }
 
   public static String mkString(final Location l) {
-    if (l != null) {
+    if (l != null && l.hasAccuracy()) {
       if (l.hasAltitude()) {
         return "<loc lat=\"" + l.getLatitude() + "\" lng=\"" + l.getLongitude() + "\" alt=\"" + (long) l.getAltitude() + "\" acc=\""
             + (long) l.getAccuracy() + "\" ts=\"" + l.getTime() + "\" />";
@@ -136,7 +135,7 @@ final class TrackMeDB {
     db.execSQL(sql);
   }
 
-  private int getBatchID(final String sessionID) {
+  public int getBatchID(final String sessionID) {
     final String[] columns = { COLUMN_NAME_LAST_BATCH_ID };
     final String selection = COLUMN_NAME_SESSION_ID + "=?";
     final String[] selectionArgs = { String.valueOf(sessionID) };
@@ -152,7 +151,7 @@ final class TrackMeDB {
     return batchID;
   }
 
-  private int getNewBatchID(final String sessionID) {
+  public int getNewBatchID(final String sessionID) {
     int batchID = getBatchID(sessionID);
     batchID = batchID + 1;
     return batchID;
@@ -261,7 +260,7 @@ final class TrackMeDB {
 
   public void clearUploadIDs() {
     final String sql = "UPDATE " + TABLE_LOCATIONS + " SET " + COLUMN_NAME_UPLOAD_ID + " = null" + " WHERE " + COLUMN_NAME_UPLOAD_ID
-        + " != null ";
+        + " NOT null ";
     db.execSQL(sql);
   }
 
