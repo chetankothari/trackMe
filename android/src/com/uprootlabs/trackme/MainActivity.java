@@ -146,19 +146,21 @@ public final class MainActivity extends Activity {
   public boolean onOptionsItemSelected(final MenuItem item) {
     switch (item.getItemId()) {
 
-    case R.id.action_settings:
+    case R.id.action_settings: {
       final Intent settings = new Intent(this, MyPreferencesActivity.class);
       startActivity(settings);
       break;
+    }
 
-    case R.id.action_upload:
+    case R.id.action_upload: {
       final Intent intent = new Intent(this, UploadService.class);
       intent.putExtra(UploadService.UPLOAD_TYPE, UploadService.MANUAL_UPLOAD);
       startService(intent);
       Log.d(MAIN_ACTIVITY_TAG, "Upload");
       break;
+    }
 
-    case R.id.action_generate_locations:
+    case R.id.action_generate_locations: {
       final Double lat = 15.8842602;
       final Double lng = 74.5028338;
       final int interval = 5;
@@ -166,6 +168,7 @@ public final class MainActivity extends Activity {
       final int count = generateLocations(lat, lng, interval, duration);
       Log.d(MAIN_ACTIVITY_TAG, "generated " + count + " locations");
       break;
+    }
 
     }
 
@@ -173,16 +176,16 @@ public final class MainActivity extends Activity {
   }
 
   private int generateLocations(Double lat, Double lng, final int interval, final int duration) {
-      final SQLiteDatabase myDb = new TrackMeDBHelper(this).getWritableDatabase();
-      final TrackMeDB db = new TrackMeDB(myDb, this);
-      long curTime = System.currentTimeMillis() - (duration *2 * 3600000);
-      final int count = (duration * 3600) / interval;
-      for (int i = 1; i <= count; i++) {
-        db.insertLocation(lat, lng, curTime);
-        curTime += interval * 1000;
-        lat = (lat + .00357) % 90;
-        lng = (lng + .00357) % 180;
-      }
+    final SQLiteDatabase myDb = new TrackMeDBHelper(this).getWritableDatabase();
+    final TrackMeDB db = new TrackMeDB(myDb, this);
+    long curTime = System.currentTimeMillis() - (duration * 2 * 3600000);
+    final int count = (duration * 3600) / interval;
+    for (int i = 1; i <= count; i++) {
+      db.insertLocation(lat, lng, curTime);
+      curTime += interval * 1000;
+      lat = (lat + .00357) % 90;
+      lng = (lng + .00357) % 180;
+    }
 
     return count;
   }
