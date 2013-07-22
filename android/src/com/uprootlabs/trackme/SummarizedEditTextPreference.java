@@ -7,19 +7,20 @@ import android.util.AttributeSet;
 final class SummarizedEditTextPreference extends EditTextPreference {
   private final String summary;
 
-//  public SummarizedEditTextPreference(final Context context) {
-//    super(context);
-//    // TODO Auto-generated constructor stub
-//  }
+  public SummarizedEditTextPreference(final Context context) {
+    super(context);
+    summary = getSummary().toString();
+  }
   
   public SummarizedEditTextPreference(final Context context, final AttributeSet attrs){
     super(context, attrs);
     summary = getSummary().toString();
   }
 
-//  public SummarizedEditTextPreference(final Context context, final AttributeSet attrs, final int defStyle){
-//    super(context, attrs, defStyle);
-//  }
+  public SummarizedEditTextPreference(final Context context, final AttributeSet attrs, final int defStyle){
+    super(context, attrs, defStyle);
+    summary = getSummary().toString();
+  }
 
  public void setText(final String text){
    super.setText(text);
