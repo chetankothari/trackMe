@@ -383,8 +383,9 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
   }
 
   def viewLocations(userId: String) = {
+    val sharedDetails = sharedFrom(currUserId)
     if (userExists) {
-      if (sharedFrom(currUserId).contains(userId) || userId == currUserId) {
+      if (sharedDetails.contains(userId) || userId == currUserId) {
         val url = "var retrieveURL = \"/web/getuserlocations/" + userId + "\";" + "var curUser = \"" + userId + "\";"
         XmlContent(createTemplate("",
           xml.Group(Seq(
@@ -394,7 +395,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
             </div>,
             <div class="span3">
               <h4>Shared From</h4>
-              <ul class="nav nav-list">{ mkXmlLinkList(sharedFrom(currUserId), Some("No Shares!")) }</ul>
+              <ul class="nav nav-list">{ mkXmlLinkList(sharedDetails, Some("No Shares!")) }</ul>
             </div>)), Some(url)))
       } else {
         XmlContent(createTemplate("", <b>The user does not share his locations with you!</b>), 400)
