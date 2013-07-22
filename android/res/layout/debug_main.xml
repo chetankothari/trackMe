@@ -103,41 +103,41 @@
         android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/labelCaptureFrequency"
+        android:id="@+id/labelCaptureInterval"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_below="@id/labelTimeStamp"
-        android:text="@string/label_capture_frequency"
+        android:text="@string/label_capture_interval"
         android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/valueCaptureFrequency"
+        android:id="@+id/valueCaptureInterval"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@id/labelCaptureFrequency"
+        android:layout_alignBaseline="@id/labelCaptureInterval"
         android:layout_below="@id/timeStamp"
         android:layout_marginLeft="10dp"
-        android:layout_toRightOf="@id/labelCaptureFrequency"
+        android:layout_toRightOf="@id/labelCaptureInterval"
         android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/labelUpdateFrequency"
+        android:id="@+id/labelUpdateInterval"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@id/labelCaptureFrequency"
-        android:text="@string/label_update_frequency"
+        android:layout_below="@id/labelCaptureInterval"
+        android:text="@string/label_update_interval"
         android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/valueUpdateFrequency"
+        android:id="@+id/valueUpdateInterval"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@id/labelUpdateFrequency"
-        android:layout_below="@id/valueCaptureFrequency"
+        android:layout_alignBaseline="@id/labelUpdateInterval"
+        android:layout_below="@id/valueCaptureInterval"
         android:layout_marginLeft="10dp"
-        android:layout_toRightOf="@id/labelUpdateFrequency"
+        android:layout_toRightOf="@id/labelUpdateInterval"
         android:textSize="20sp" />
 
     <TextView
@@ -145,7 +145,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@id/labelUpdateFrequency"
+        android:layout_below="@id/labelUpdateInterval"
         android:text="@string/label_current_session_id"
         android:textSize="20sp" />
 
@@ -154,7 +154,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@id/labelSessionID"
-        android:layout_below="@id/valueUpdateFrequency"
+        android:layout_below="@id/valueUpdateInterval"
         android:layout_marginLeft="10dp"
         android:layout_toRightOf="@id/labelSessionID"
         android:textSize="20sp" />
