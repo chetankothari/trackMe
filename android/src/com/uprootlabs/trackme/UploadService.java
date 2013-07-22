@@ -38,88 +38,94 @@ public final class UploadService extends Service {
 
     @Override
     public void run() {
-      Log.d(UPLOAD_SERVICE_TAG, "Thread Started");
-      final String serverURL = myPreference.getServerLocation();
-      final String userID = myPreference.getUserID();
-      final String passKey = myPreference.getPassKey();
-      if (userAuthenticated(userID, passKey, serverURL)) {
+      try {
+        Log.d(UPLOAD_SERVICE_TAG, "Thread Started");
+        final String serverURL = myPreference.getServerLocation();
+        final String userID = myPreference.getUserID();
+        final String passKey = myPreference.getPassKey();
+        if (userAuthenticated(userID, passKey, serverURL)) {
 
-        db.clearUploadIDs();
-        boolean errorExit;
-        do {
-          errorExit = false;
-          int retryCount = 0;
-          int code = -1;
-          HttpResponse response = null;
+          db.clearUploadIDs();
+          boolean errorExit;
+          do {
+            errorExit = false;
+            int retryCount = 0;
+            int code = -1;
+            HttpResponse response = null;
 
-          final int uploadId = myPreference.mkNewUploadID();
-          db.assignUploadID(uploadId, uploadTime);
-          Cursor c = db.getLocationsByUploadID(uploadId);
-          final Map<SessionBatchTuple, List<Location>> sessionLocations = db.batching(c, uploadId);
-          c.close();
-          final String locations = db.locationsToXML(sessionLocations, uploadId);
+            final int uploadId = myPreference.mkNewUploadID();
+            db.assignUploadID(uploadId, uploadTime);
+            final Cursor c = db.getLocationsByUploadID(uploadId);
+            final Map<SessionBatchTuple, List<Location>> sessionLocations = db.batching(c, uploadId);
+            c.close();
+            final String locations = db.locationsToXML(sessionLocations, uploadId);
 
-          Log.d(UPLOAD_SERVICE_TAG, locations);
-          final AndroidHttpClient http = AndroidHttpClient.newInstance("TrackMe");
-          final HttpPost httpPost = new HttpPost(serverURL + "/api/v1/xml/store");
-          GzipHelper.setCompressedEntity(UploadService.this, locations, httpPost);
-          httpPost.addHeader("userid", userID);
-          httpPost.addHeader("passkey", passKey);
-          while (retryCount < MAX_RETRY_COUNT) {
+            Log.d(UPLOAD_SERVICE_TAG, locations);
+            final AndroidHttpClient http = AndroidHttpClient.newInstance("TrackMe");
+            final HttpPost httpPost = new HttpPost(serverURL + "/api/v1/xml/store");
+            GzipHelper.setCompressedEntity(UploadService.this, locations, httpPost);
+            httpPost.addHeader("userid", userID);
+            httpPost.addHeader("passkey", passKey);
+            while (retryCount < MAX_RETRY_COUNT) {
 
-            try {
-              response = http.execute(httpPost);
-              Log.d(UPLOAD_SERVICE_TAG, response.toString());
-              code = response.getStatusLine().getStatusCode();
-              errorExit = false;
-              retryCount = MAX_RETRY_COUNT;
-            } catch (final ClientProtocolException e) {
-              retryCount += 1;
-              errorExit = true;
-            } catch (final IOException e) {
-              retryCount += 1;
-              errorExit = true;
-              e.printStackTrace();
-            }
-
-          }
-          http.close();
-
-          if (code == HttpStatus.SC_OK) {
-            final UploadResponse serverResponse = UploadResponse.parse(response);
-            final int uploadID = serverResponse.uploadId;
-
-            for (BatchResponse batch : serverResponse.batchResponse) {
-
-              if (batch.status.equals("true")) {
-                Log.d(UPLOAD_SERVICE_TAG, "Boolean New " + batch.status);
-                final int uploadedCount = db.moveLocationsToSessionTable(uploadID, batch.sessionId, batch.batchId);
-                updatePreferences.incrementUploadedCount(uploadedCount);
-                final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
-                LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
-              } else {
-                final int archivedCount = db.archiveLocations(uploadID, batch.sessionId, batch.batchId);
-                updatePreferences.incrementArchivedCount(archivedCount);
-                final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
-                LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
+              try {
+                response = http.execute(httpPost);
+                Log.d(UPLOAD_SERVICE_TAG, response.toString());
+                code = response.getStatusLine().getStatusCode();
+                errorExit = false;
+                retryCount = MAX_RETRY_COUNT;
+              } catch (final ClientProtocolException e) {
+                retryCount += 1;
+                errorExit = true;
+              } catch (final IOException e) {
+                retryCount += 1;
+                errorExit = true;
+                e.printStackTrace();
               }
 
             }
+            http.close();
 
-          } else {
-            final String message = "Server response:\n" + response.getStatusLine().getReasonPhrase();
-            getApplication().startActivity(UserError.makeIntent(getBaseContext(), message));
-            errorExit = true;
-          }
-        } while (db.getQueuedLocationsCount(uploadTime) > 0 && !errorExit);
+            if (code == HttpStatus.SC_OK) {
+              final UploadResponse serverResponse = UploadResponse.parse(response);
+              final int uploadID = serverResponse.uploadId;
+
+              updateDatabase(serverResponse, uploadID);
+
+            } else {
+              final String message = "Server response:\n" + response.getStatusLine().getReasonPhrase();
+              getApplication().startActivity(UserError.makeIntent(getBaseContext(), message));
+              errorExit = true;
+            }
+          } while (db.getQueuedLocationsCount(uploadTime) > 0 && !errorExit);
+
+        }
+
+        Log.d(UPLOAD_SERVICE_TAG, "Thread Compleated");
+      } finally {
+
+        synchronized (UploadService.this) {
+          running = false;
+          stopForeground(true);
+        }
 
       }
+    }
 
-      synchronized (UploadService.this) {
-        running = false;
-        stopForeground(true);
+    private void updateDatabase(final UploadResponse serverResponse, final int uploadID) {
+      for (final BatchResponse batch : serverResponse.batchResponse) {
+
+        if (batch.accepted) {
+          final int uploadedCount = db.moveLocationsToSessionTable(uploadID, batch.sessionId, batch.batchId);
+          updatePreferences.incrementUploadedCount(uploadedCount);
+        } else {
+          final int archivedCount = db.archiveLocations(uploadID, batch.sessionId, batch.batchId);
+          updatePreferences.incrementArchivedCount(archivedCount);
+        }
+        final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
+        LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
+
       }
-      Log.d(UPLOAD_SERVICE_TAG, "Thread Compleated");
     }
   }
 

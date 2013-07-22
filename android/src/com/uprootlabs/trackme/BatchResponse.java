@@ -2,14 +2,14 @@ package com.uprootlabs.trackme;
 
 final class BatchResponse {
 
-  public String sessionId;
-  public int batchId;
-  public String status;
+  final public String sessionId;
+  final public int batchId;
+  final public boolean accepted;
 
-  public BatchResponse(String sessionId, int batchId, String status) {
+  public BatchResponse(final String sessionId, final int batchId, final boolean accepted) {
     this.sessionId = sessionId;
     this.batchId = batchId;
-    this.status = status;
+    this.accepted = accepted;
   }
 
 }

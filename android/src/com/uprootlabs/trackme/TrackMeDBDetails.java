@@ -10,7 +10,7 @@ final class TrackMeDBDetails implements BaseColumns {
   public static final String COLUMN_NAME_BATCH_ID = "batchId";
   public static final String COLUMN_NAME_UPLOAD_ID = "uploadId";
   public static final String COLUMN_NAME_LAST_BATCH_ID = "lastBatchId";
-  public static final String COLUMN_NAME_STATUS= "status";
+  public static final String COLUMN_NAME_STATUS= "accepted";
   public static final String COLUMN_NAME_LAT = "latitude";
   public static final String COLUMN_NAME_LNG = "longitude";
   public static final String COLUMN_NAME_ALT = "altitude";

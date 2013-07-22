@@ -32,7 +32,7 @@ public class UploadResponseTest extends TestCase {
     assertEquals("wrong list size", 1, resp.batchResponse.size());
     assertEquals("Wrong sessionID", "sid1", resp.batchResponse.get(0).sessionId);
     assertEquals("wrong batchID", 1, resp.batchResponse.get(0).batchId);
-    assertEquals("Wrong status", "true", resp.batchResponse.get(0).status);
+    assertEquals("Wrong accepted", "true", resp.batchResponse.get(0).accepted);
   }
 
   public void testParseValidString1() {
@@ -42,10 +42,10 @@ public class UploadResponseTest extends TestCase {
     assertEquals("wrong list size", 2, resp.batchResponse.size());
     assertEquals("wrong sessionID", "sid1", resp.batchResponse.get(0).sessionId);
     assertEquals("wrong batchID", 1, resp.batchResponse.get(0).batchId);
-    assertEquals("wrong status", "true", resp.batchResponse.get(0).status);
+    assertEquals("wrong accepted", "true", resp.batchResponse.get(0).accepted);
     assertEquals("wrong sessionID", "sid2", resp.batchResponse.get(1).sessionId);
     assertEquals("wrong batchID", 2, resp.batchResponse.get(1).batchId);
-    assertEquals("wrong status", "false", resp.batchResponse.get(1).status);
+    assertEquals("wrong accepted", "false", resp.batchResponse.get(1).accepted);
   }
 
   public void testParseNoBatchString() {

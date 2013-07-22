@@ -12,6 +12,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 
 import static com.uprootlabs.trackme.TrackMeDBDetails.*;
+
 final class TrackMeDB {
   private final SQLiteDatabase db;
   private final MyPreference myPreferences;
@@ -52,7 +53,7 @@ final class TrackMeDB {
 
   public void insertLocation(final Double lat, final Double lng, final long timeStamp) {
     final long acc = 12;
-    Location l = new Location("");
+    final Location l = new Location("");
     l.setLatitude(lat);
     l.setLongitude(lng);
     l.setAccuracy(acc);
@@ -151,7 +152,7 @@ final class TrackMeDB {
     return batchID;
   }
 
-  public int getNewBatchID(final String sessionID) {
+  public int mkNewBatchID(final String sessionID) {
     int batchID = getBatchID(sessionID);
     batchID = batchID + 1;
     return batchID;
@@ -204,52 +205,62 @@ final class TrackMeDB {
     final Map<SessionBatchTuple, List<Location>> map = new HashMap<SessionBatchTuple, List<Location>>();
     final Map<String, Integer> sessionBatches = new HashMap<String, Integer>();
     int batchID;
-    c.moveToFirst();
-    do {
-      final String sessionID = c.getString(c.getColumnIndexOrThrow(COLUMN_NAME_SESSION_ID));
-      if (sessionBatches.get(sessionID) == null && c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_BATCH_ID))) {
-        sessionBatches.put(sessionID, getNewBatchID(sessionID));
-      }
-      try {
-        batchID = c.getInt(c.getColumnIndexOrThrow(COLUMN_NAME_BATCH_ID));
-        if (batchID == 0) {
-          batchID = sessionBatches.get(sessionID);
+    final boolean nonEmptyCursor = c.moveToFirst();
+    if (nonEmptyCursor) {
+      do {
+        final String sessionID = c.getString(c.getColumnIndexOrThrow(COLUMN_NAME_SESSION_ID));
+        final boolean batchIdAssigned = c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_BATCH_ID));
+
+        if (batchIdAssigned) {
+          batchID = c.getInt(c.getColumnIndexOrThrow(COLUMN_NAME_BATCH_ID));
+        } else {
+          if (sessionBatches.containsKey(sessionID)) {
+            batchID = sessionBatches.get(sessionID);
+          } else {
+            batchID = mkNewBatchID(sessionID);
+            sessionBatches.put(sessionID, batchID);
+          }
         }
-      } catch (final android.database.SQLException e) {
-        batchID = sessionBatches.get(sessionID);
-      }
-      final double latitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_LAT));
-      final double longitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_LNG));
-      final long accuracy = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ACC));
-      final long timeStamp = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_TS));
-      final SessionBatchTuple mapKey = new SessionBatchTuple(sessionID, batchID);
-      List<Location> batch = map.get(mapKey);
-      Location location;
-      if (!c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_ALT))) {
-        final Double altitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ALT));
-        location = new Location("");
-        location.setLatitude(latitude);
-        location.setLongitude(longitude);
-        location.setAltitude(altitude);
-        location.setAccuracy(accuracy);
-        location.setTime(timeStamp);
-      } else {
-        location = new Location("");
-        location.setLatitude(latitude);
-        location.setLongitude(longitude);
-        location.setAccuracy(accuracy);
-        location.setTime(timeStamp);
-      }
 
-      if (batch == null)
-        map.put(mapKey, batch = new ArrayList<Location>());
-      batch.add(location);
+        final SessionBatchTuple mapKey = new SessionBatchTuple(sessionID, batchID);
+        List<Location> batch = map.get(mapKey);
+        final Location location = mkLocation(c);
 
-    } while (c.moveToNext());
+        if (batch == null) {
+          map.put(mapKey, batch = new ArrayList<Location>());
+        }
+        batch.add(location);
+
+      } while (c.moveToNext());
+    }
 
     updateBatchIDs(sessionBatches, uploadID);
 
     return map;
+  }
+
+  private Location mkLocation(final Cursor c) {
+    final double latitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_LAT));
+    final double longitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_LNG));
+    final long accuracy = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ACC));
+    final long timeStamp = (long) c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_TS));
+    Location location;
+    if (!c.isNull(c.getColumnIndexOrThrow(COLUMN_NAME_ALT))) {
+      final Double altitude = c.getDouble(c.getColumnIndexOrThrow(COLUMN_NAME_ALT));
+      location = new Location("");
+      location.setLatitude(latitude);
+      location.setLongitude(longitude);
+      location.setAltitude(altitude);
+      location.setAccuracy(accuracy);
+      location.setTime(timeStamp);
+    } else {
+      location = new Location("");
+      location.setLatitude(latitude);
+      location.setLongitude(longitude);
+      location.setAccuracy(accuracy);
+      location.setTime(timeStamp);
+    }
+    return location;
   }
 
   public void newSession(final String sessionID) {

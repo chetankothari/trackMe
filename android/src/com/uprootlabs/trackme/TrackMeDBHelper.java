@@ -30,10 +30,6 @@ final class TrackMeDBHelper extends SQLiteOpenHelper {
       + TrackMeDBDetails.COLUMN_NAME_ALT + REAL_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_ACC + INTEGER_TYPE + COMMA_SEP
       + TrackMeDBDetails.COLUMN_NAME_TS + BIGINT_TYPE + COMMA_SEP + TrackMeDBDetails.COLUMN_NAME_BATCH_ID + TEXT_TYPE + ")";
 
-  private static final String SQL_DELETE_LOCATION_TABLE = "DROP TABLE IF EXISTS " + TrackMeDBDetails.TABLE_LOCATIONS;
-  private static final String SQL_DELETE_SESSION_TABLE = "DROP TABLE IF EXISTS " + TrackMeDBDetails.TABLE_SESSION;
-  private static final String SQL_DELETE_ARCHIVED_LOCATIONS_TABLE = "DROP TABLE IF EXISTS " + TrackMeDBDetails.TABLE_ARCHIVED_LOCATIONS;
-
   public TrackMeDBHelper(final Context context) {
     super(context, TrackMeDBDetails.DATABASE_NAME, null, TrackMeDBDetails.DB_VERSION);
   }
@@ -54,10 +50,6 @@ final class TrackMeDBHelper extends SQLiteOpenHelper {
   }
 
   public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
-    db.execSQL(SQL_DELETE_LOCATION_TABLE);
-    db.execSQL(SQL_DELETE_SESSION_TABLE);
-    db.execSQL(SQL_DELETE_ARCHIVED_LOCATIONS_TABLE);
-    onCreate(db);
   }
 
   public void onDowngrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {

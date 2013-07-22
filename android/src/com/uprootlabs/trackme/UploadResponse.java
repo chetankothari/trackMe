@@ -26,16 +26,21 @@ final class UploadResponse {
   public List<BatchResponse> batchResponse;
 
   private static List<BatchResponse> getBatchResponse(final NodeList nl) {
-    List<BatchResponse> batchResp = new ArrayList<BatchResponse>();
+    final List<BatchResponse> batchResp = new ArrayList<BatchResponse>();
     for (int i = 0; i < nl.getLength(); i++) {
       final Element e = (Element) nl.item(i);
       if (e.getAttribute("sid").equals("") | e.getAttribute("bid").equals("") | e.getAttribute("accepted").equals("")) {
 
       } else {
-        String sessionId = e.getAttribute("sid");
-        int batchId = Integer.parseInt(e.getAttribute("bid"));
-        String status = e.getAttribute("accepted");
-        batchResp.add(new BatchResponse(sessionId, batchId, status));
+        final String sessionId = e.getAttribute("sid");
+        final int batchId = Integer.parseInt(e.getAttribute("bid"));
+        final boolean accepted;
+        if (e.getAttribute("accepted").equals("true")) {
+          accepted = true;
+        } else {
+          accepted = false;
+        }
+        batchResp.add(new BatchResponse(sessionId, batchId, accepted));
       }
 
     }
@@ -44,24 +49,22 @@ final class UploadResponse {
 
   }
 
-  public static UploadResponse parse(HttpResponse resp) {
-
-    final HttpEntity entity = resp.getEntity();
-    String response;
+  public static UploadResponse parse(final HttpResponse resp) {
 
     try {
+      final HttpEntity entity = resp.getEntity();
+      final String response;
       response = EntityUtils.toString(entity);
+      return parse(response);
     } catch (final ParseException e) {
-      response = "ParseException";
+      return null;
     } catch (final IOException e) {
-      response = "IOException";
+      return null;
     }
-
-    return parse(response);
 
   }
 
-  public static UploadResponse parse(String xml) {
+  public static UploadResponse parse(final String xml) {
     Document doc = null;
     final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     try {
@@ -71,16 +74,16 @@ final class UploadResponse {
       final InputSource is = new InputSource();
       is.setCharacterStream(new StringReader(xml));
       doc = db.parse(is);
-      UploadResponse uploadResponse = new UploadResponse();
       if (doc.getDocumentElement().getAttribute("uid").equals("")) {
         return null;
       } else {
 
-        if(doc.getElementsByTagName("upload") != null){
-        uploadResponse.uploadId = Integer.parseInt(doc.getDocumentElement().getAttribute("uid"));
-        final NodeList nl = doc.getElementsByTagName("batch");
-        uploadResponse.batchResponse = getBatchResponse(nl);
-        return uploadResponse;
+        final UploadResponse uploadResponse = new UploadResponse();
+        if (doc.getElementsByTagName("upload") != null) {
+          uploadResponse.uploadId = Integer.parseInt(doc.getDocumentElement().getAttribute("uid"));
+          final NodeList nl = doc.getElementsByTagName("batch");
+          uploadResponse.batchResponse = getBatchResponse(nl);
+          return uploadResponse;
         } else {
           return null;
         }

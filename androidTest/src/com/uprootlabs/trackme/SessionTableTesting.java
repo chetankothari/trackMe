@@ -75,9 +75,9 @@ public class SessionTableTesting extends AndroidTestCase {
   }
 
   public void tesetGetNewBatchID() {
-    int bid = db.getNewBatchID("session2");
+    int bid = db.mkNewBatchID("session2");
     assertEquals(1, bid);
-    bid = db.getNewBatchID("session2");
+    bid = db.mkNewBatchID("session2");
     assertEquals(2, bid);
   }
 
@@ -85,9 +85,9 @@ public class SessionTableTesting extends AndroidTestCase {
     populateTable();
     db.assignUploadID(10, 15);
     Map<String, Integer> sessionBatch = new HashMap<String, Integer>();
-    sessionBatch.put("session10", db.getNewBatchID("session10"));
-    sessionBatch.put("session11", db.getNewBatchID("session11") + 1);
-    sessionBatch.put("session21", db.getNewBatchID("session21"));
+    sessionBatch.put("session10", db.mkNewBatchID("session10"));
+    sessionBatch.put("session11", db.mkNewBatchID("session11") + 1);
+    sessionBatch.put("session21", db.mkNewBatchID("session21"));
     db.updateBatchIDs(sessionBatch, 10);
     Cursor c = myDb.query(TrackMeDBDetails.TABLE_LOCATIONS, null, TrackMeDBDetails.COLUMN_NAME_SESSION_ID + " = \"session10\" OR "
         + TrackMeDBDetails.COLUMN_NAME_SESSION_ID + " = \" session11\" ", null, null, null, null);
