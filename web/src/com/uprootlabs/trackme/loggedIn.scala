@@ -38,20 +38,20 @@ import Helper.LOCATIONS_LIMIT
 import Helper.PARAM_PASS_KEY
 import Helper.PARAM_SHARE_WITH
 import Helper.PARAM_VERSION_NO
-import Helper.batchExistsFunc
+import Helper.batchExists
 import Helper.datastore
 import Helper.getUserEntity
 import Helper.mkBatchKey
 import Helper.mkSessionKey
 import Helper.mkUserKey
-import Helper.sessionExistsFunc
-import Helper.userExistsFunc
+import Helper.sessionExists
+import Helper.userExists
 import javax.servlet.http.HttpServletRequest
 
 class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging {
 
   import Helper._
-  private def userExists = userExistsFunc(currUserId)
+  private def userExistsBool = userExists(currUserId)
   private val userService = UserServiceFactory.getUserService
   private val thisURL = req.getRequestURI
   private val logoutURL = userService.createLogoutURL(thisURL)
@@ -100,10 +100,10 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
     val passKey = req.getParameter(PARAM_PASS_KEY)
     val shareWith = req.getParameter(PARAM_SHARE_WITH)
     val usersSharingWith = shareWith.split(",").toList.filter(_.length != 0)
-    val (validUsers, invalidUsers) = usersSharingWith.partition(userExistsFunc(_))
+    val (validUsers, invalidUsers) = usersSharingWith.partition(userExists(_))
     val userKey = mkUserKey(currUserId)
     val (message, alertType) = mkTxn {
-      val (userEntity, serverVersionNo) = if (userExists) {
+      val (userEntity, serverVersionNo) = if (userExistsBool) {
         val userEntity = getUserEntity(currUserId)
         (userEntity, userEntity.getProperty("versionNo").asInstanceOf[Long])
       } else {
@@ -174,7 +174,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
 
   def settingsPage(message: Option[xml.Node] = None) = {
     val settingsForm =
-      if (userExists) {
+      if (userExistsBool) {
         val userKey = KeyFactory.createKey(KIND_USER_DETAILS, currUserId)
         val userEntity = datastore.get(userKey)
         val passKey = userEntity.getProperty(COLUMN_PASS_KEY).toString
@@ -189,7 +189,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
       } else {
         (userSettingsForm("", "", Some(mkAlert("Please Set your PassKey", None)), 0))
       }
-    XmlContent(createTemplate("Settings", settingsForm))
+    HtmlContent(createTemplate("Settings", settingsForm))
   }
 
   private def mkXmlLinkList(listElements: Seq[String], message: Option[String] = None) = {
@@ -243,8 +243,8 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
     <input type="button" value="Refresh" id="mapUpdate" class="btn btn-inverse"></input>
 
   def homePage() = {
-    if (userExists) {
-      XmlContent(createTemplate("Home",
+    if (userExistsBool) {
+      HtmlContent(createTemplate("Home",
         xml.Group(Seq(<div class="span7">
                         { mapElem }{ refreshButton }
                       </div>,
@@ -276,9 +276,9 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
         val sessionKey = mkSessionKey(userKey, sid)
         val batchKey = mkBatchKey(sessionKey, bid)
         val locations = batch.locations
-        if (locations.forall(_.isValid(maxTime)) && !batchExistsFunc(batchKey)) {
+        if (locations.forall(_.isValid(maxTime)) && !batchExists(batchKey)) {
 
-          if (!sessionExistsFunc(sessionKey)) {
+          if (!sessionExists(sessionKey)) {
             val sessionEntity = new Entity(sessionKey)
             datastore.put(sessionEntity)
             logger.info(s"Session $sid Added/Updated")
@@ -361,7 +361,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
   }
 
   def getUserLocations(userId: String) = {
-    if ((userId == currUserId || (sharedFrom(currUserId).contains(userId) && userExistsFunc(userId)))) {
+    if ((userId == currUserId || (sharedFrom(currUserId).contains(userId) && userExists(userId)))) {
       JsonContent("{" + getLocations(userId) + "}")
     } else {
       JsonContent(ResponseStatus(false, "Cannot Retrieve as there are no locations stored for this user!").mkJson, 401)
@@ -369,7 +369,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
   }
 
   def retrieveLocations = {
-    if (userExists) {
+    if (userExistsBool) {
       val myLocations = getLocations(currUserId)
       val sharedLocations = sharedLocationsMkJson(getSharedLastLocations(currUserId))
       JsonContent(List(myLocations, sharedLocations).mkString("{", ",", "}"))
@@ -384,10 +384,10 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
 
   def viewLocations(userId: String) = {
     val sharedDetails = sharedFrom(currUserId)
-    if (userExists) {
+    if (userExistsBool) {
       if (sharedDetails.contains(userId) || userId == currUserId) {
         val url = "var retrieveURL = \"/web/getuserlocations/" + userId + "\";" + "var curUser = \"" + userId + "\";"
-        XmlContent(createTemplate("",
+        HtmlContent(createTemplate("",
           xml.Group(Seq(
             <div class="span7">
               <h3>Showing Map for : { userId }</h3>
@@ -398,7 +398,7 @@ class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging 
               <ul class="nav nav-list">{ mkXmlLinkList(sharedDetails, Some("No Shares!")) }</ul>
             </div>)), Some(url)))
       } else {
-        XmlContent(createTemplate("", <b>The user does not share his locations with you!</b>), 400)
+        HtmlContent(createTemplate("", <b>The user does not share his locations with you!</b>), 400)
       }
     } else {
       Redirect("/web/home")

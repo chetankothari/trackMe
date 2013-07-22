@@ -36,7 +36,7 @@ class CommonFunctions(req: HttpServletRequest) extends Logging {
   private def createTemplate(message: xml.Node, jScript: Option[String] = None) = {
     Helper.createTemplate(<p></p>, " Guest!", message, jScript, logoutURL = logoutURL)
   }
-  val fileNotFound = XmlContent(createTemplate(FILE_NOT_FOUND), 404)
+  val fileNotFound = HtmlContent(createTemplate(FILE_NOT_FOUND), 404)
 
   val requestPath = ((req.getPathInfo()).split("/")).filter(_.length != 0).toList
 
@@ -45,7 +45,7 @@ class CommonFunctions(req: HttpServletRequest) extends Logging {
       val currUserId = userPrincipal.getName
       f(new LoggedInUser(currUserId, req))
     } else {
-      XmlContent(createTemplate(<p>Please <a href={ userService.createLoginURL(thisURL) }>sign in</a></p>))
+      HtmlContent(createTemplate(<p>Please <a href={ userService.createLoginURL(thisURL) }>sign in</a></p>))
     }
   }
 
@@ -58,11 +58,7 @@ class CommonFunctions(req: HttpServletRequest) extends Logging {
         val userEntity = datastore.get(userKey)
         val dsUserID = userEntity.getProperty(COLUMN_USER_ID)
         val dsPassKey = userEntity.getProperty(COLUMN_PASS_KEY)
-        if (dsUserID == userId && dsPassKey == passKey) {
-          true
-        } else {
-          false
-        }
+        dsUserID == userId && dsPassKey == passKey
       } catch {
         case _: IllegalArgumentException | _: EntityNotFoundException => false
       }
@@ -133,11 +129,11 @@ object Helper {
     KeyFactory.createKey(KIND_USER_DETAILS, userId)
   }
 
-  def userExistsFunc(userId: String): Boolean = {
-    userExistsFunc(mkUserKey(userId))
+  def userExists(userId: String): Boolean = {
+    userExists(mkUserKey(userId))
   }
 
-  def userExistsFunc(userKey: Key): Boolean = {
+  def userExists(userKey: Key): Boolean = {
     try {
       datastore.get(userKey)
       true
@@ -150,12 +146,12 @@ object Helper {
     KeyFactory.createKey(userKey, KIND_SESSIONS, sessionId)
   }
 
-  def sessionExistsFunc(userId: String, sessionId: String): Boolean = {
+  def sessionExists(userId: String, sessionId: String): Boolean = {
     val sessionKey = mkSessionKey(mkUserKey(userId), sessionId)
-    sessionExistsFunc(sessionKey)
+    sessionExists(sessionKey)
   }
 
-  def sessionExistsFunc(sessionKey: Key): Boolean = {
+  def sessionExists(sessionKey: Key): Boolean = {
     try {
       datastore.get(sessionKey)
       true
@@ -168,12 +164,12 @@ object Helper {
     KeyFactory.createKey(sessionKey, KIND_BATCHES, batchId)
   }
 
-  def batchExistsFunc(userId: String, sessionId: String, batchId: Int): Boolean = {
+  def batchExists(userId: String, sessionId: String, batchId: Int): Boolean = {
     val batchKey = mkBatchKey(mkSessionKey(mkUserKey(userId), sessionId), batchId)
-    batchExistsFunc(batchKey)
+    batchExists(batchKey)
   }
 
-  def batchExistsFunc(batchKey: Key): Boolean = {
+  def batchExists(batchKey: Key): Boolean = {
     try {
       datastore.get(batchKey)
       true
