@@ -34,12 +34,7 @@ final class UploadResponse {
       } else {
         final String sessionId = e.getAttribute("sid");
         final int batchId = Integer.parseInt(e.getAttribute("bid"));
-        final boolean accepted;
-        if (e.getAttribute("accepted").equals("true")) {
-          accepted = true;
-        } else {
-          accepted = false;
-        }
+        final boolean accepted = e.getAttribute("accepted").equals("true");
         batchResp.add(new BatchResponse(sessionId, batchId, accepted));
       }
 
@@ -78,8 +73,8 @@ final class UploadResponse {
         return null;
       } else {
 
-        final UploadResponse uploadResponse = new UploadResponse();
         if (doc.getElementsByTagName("upload") != null) {
+          final UploadResponse uploadResponse = new UploadResponse();
           uploadResponse.uploadId = Integer.parseInt(doc.getDocumentElement().getAttribute("uid"));
           final NodeList nl = doc.getElementsByTagName("batch");
           uploadResponse.batchResponse = getBatchResponse(nl);
