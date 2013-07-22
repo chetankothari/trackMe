@@ -48,7 +48,7 @@ import Helper.sessionExistsFunc
 import Helper.userExistsFunc
 import javax.servlet.http.HttpServletRequest
 
-class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
+class LoggedInUser(currUserId: String, req: HttpServletRequest) extends Logging {
 
   import Helper._
   private def userExists = userExistsFunc(currUserId)
@@ -327,7 +327,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
     }.mkString("{", ",", "}")
   }
 
-  private def getLastLocations(userId: String) = {
+  private def getSharedLastLocations(userId: String) = {
 
     sharedFrom(userId).flatMap { sharerId =>
       val userKey = mkUserKey(sharerId)
@@ -371,7 +371,7 @@ class LoggedIn(currUserId: String, req: HttpServletRequest) extends Logging {
   def retrieveLocations = {
     if (userExists) {
       val myLocations = getLocations(currUserId)
-      val sharedLocations = sharedLocationsMkJson(getLastLocations(currUserId))
+      val sharedLocations = sharedLocationsMkJson(getSharedLastLocations(currUserId))
       JsonContent(List(myLocations, sharedLocations).mkString("{", ",", "}"))
     } else {
       JsonContent(ResponseStatus(false, "Cannot Retrieve as there are no locations stored for this user!").mkJson, 403)

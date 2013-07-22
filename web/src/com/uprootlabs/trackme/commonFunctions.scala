@@ -40,10 +40,10 @@ class CommonFunctions(req: HttpServletRequest) extends Logging {
 
   val requestPath = ((req.getPathInfo()).split("/")).filter(_.length != 0).toList
 
-  def webAuthentication(f: (LoggedIn) => Result) = {
+  def webAuthentication(f: (LoggedInUser) => Result) = {
     if (userPrincipal != null) {
       val currUserId = userPrincipal.getName
-      f(new LoggedIn(currUserId, req))
+      f(new LoggedInUser(currUserId, req))
     } else {
       XmlContent(createTemplate(<p>Please <a href={ userService.createLoginURL(thisURL) }>sign in</a></p>))
     }
@@ -71,13 +71,13 @@ class CommonFunctions(req: HttpServletRequest) extends Logging {
     }
   }
 
-  def apiAuthentication(format: String, f: (LoggedIn) => Result) = {
+  def apiAuthentication(format: String, f: (LoggedInUser) => Result) = {
     if (userPrincipal != null) {
       val currUserId = userPrincipal.getName
-      f(new LoggedIn(currUserId, req))
+      f(new LoggedInUser(currUserId, req))
     } else if (checkPassKey) {
       val currUserId = req.getHeader(XML_ATTRIBUTE_USER_ID)
-      f(new LoggedIn(currUserId, req))
+      f(new LoggedInUser(currUserId, req))
     } else {
       format match {
         case "xml" => XmlContent(ResponseStatus(false, "Invalid UserID or PassKey").mkXML, 400)

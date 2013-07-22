@@ -44,22 +44,22 @@ class TrackMeServlet extends HttpServlet {
 
     val result = common.requestPath match {
       case Nil => Redirect("/web/home")
-      case "web" :: page => {
-        common.webAuthentication { loggedIn =>
-          page match {
-            case "home" :: Nil=> loggedIn.homePage()
-            case "settings" :: Nil => loggedIn.settingsPage()
-            case "getuserlocations" :: userId :: Nil => loggedIn.getUserLocations(userId)
-            case "user" :: userId :: Nil => loggedIn.viewLocations(userId)
+      case "web" :: pagePath => {
+        common.webAuthentication { loggedInUser =>
+          pagePath match {
+            case "home" :: Nil=> loggedInUser.homePage()
+            case "settings" :: Nil => loggedInUser.settingsPage()
+            case "getuserlocations" :: userId :: Nil => loggedInUser.getUserLocations(userId)
+            case "user" :: userId :: Nil => loggedInUser.viewLocations(userId)
             case _ => common.fileNotFound
           }
         }
       }
       case "api" :: "v1" :: format :: operation :: Nil => {
-        common.apiAuthentication(format, { loggedIn =>
+        common.apiAuthentication(format, { loggedInUser =>
           operation match {
-            case "retrieve" => loggedIn.retrieveLocations
-            case "validate" => loggedIn.validate
+            case "retrieve" => loggedInUser.retrieveLocations
+            case "validate" => loggedInUser.validate
             case _ => common.fileNotFound
           }
         })
@@ -75,18 +75,18 @@ class TrackMeServlet extends HttpServlet {
     val common = new CommonFunctions(req)
 
     val result = common.requestPath match {
-      case "web" :: page :: Nil => {
-        common.webAuthentication { loggedIn =>
-          page match {
-            case "settings" => loggedIn.updateSettings
+      case "web" :: pagePath :: Nil => {
+        common.webAuthentication { loggedInUser =>
+          pagePath match {
+            case "settings" => loggedInUser.updateSettings
             case _ => common.fileNotFound
           }
         }
       }
       case "api" :: "v1" :: format :: operation :: Nil => {
-        common.apiAuthentication(format, { loggedIn =>
+        common.apiAuthentication(format, { loggedInUser =>
           operation match {
-            case "store" => loggedIn.storeLocations
+            case "store" => loggedInUser.storeLocations
             case _ => common.fileNotFound
           }
         })
