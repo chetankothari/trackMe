@@ -6,14 +6,13 @@ import android.preference.PreferenceManager;
 
 final class MyPreference {
 
-  SharedPreferences myPreferences;
-  SharedPreferences.Editor myPreferencesEditor;
+  final private SharedPreferences myPreferences;
   private final String USER_ID;
   private final String PASSKEY;
   private final String SERVER_LOCATION;
   private final String AUTO_UPDATE;
-  private final String CAPTURE_FREQUENCY;
-  private final String UPDATE_FREQUENCY;
+  private final String CAPTURE_INTERVAL;
+  private final String UPDATE_INTERVAL;
   private final String SESSION_ID;
   private final String UPLOAD_ID;
   private final String NOT_SET = "";
@@ -24,30 +23,22 @@ final class MyPreference {
     PASSKEY = context.getResources().getString(R.string.key_passkey);
     SERVER_LOCATION = context.getResources().getString(R.string.key_server_location);
     AUTO_UPDATE = context.getResources().getString(R.string.key_auto_update);
-    CAPTURE_FREQUENCY = context.getResources().getString(R.string.key_capture_frequency);
-    UPDATE_FREQUENCY = context.getResources().getString(R.string.key_update_frequency);
+    CAPTURE_INTERVAL = context.getResources().getString(R.string.key_capture_interval);
+    UPDATE_INTERVAL = context.getResources().getString(R.string.key_update_interval);
     SESSION_ID = context.getResources().getString(R.string.key_session_id);
     UPLOAD_ID = context.getResources().getString(R.string.key_upload_id);
   }
 
   public boolean userDetailsNotNull() {
-    if (isNullOrEmpty(getUserID()) || isNullOrEmpty(getPassKey())) {
-      return false;
-    } else {
-      return true;
-    }
+    return !(isNullOrEmpty(getUserID()) || isNullOrEmpty(getPassKey()));
   }
 
   public boolean serverLocationSet() {
-    if (isNullOrEmpty(getServerLocation())) {
-      return false;
-    } else {
-      return true;
-    }
+    return !(isNullOrEmpty(getServerLocation()));
   }
   
   private boolean isNullOrEmpty(final String string) {
-    return string.trim().equals("");
+    return string.trim().equals("") || string == null;
   }
 
   public String getUserID() {
@@ -66,12 +57,12 @@ final class MyPreference {
     return myPreferences.getString(SESSION_ID, NOT_SET);
   }
 
-  public int getCaptureFrequency() {
-    return Integer.parseInt(myPreferences.getString(CAPTURE_FREQUENCY, "10")) * TrackMeHelper.MILLISECONDS_PER_SECOND;
+  public int getCaptureIntervalMillis() {
+    return Integer.parseInt(myPreferences.getString(CAPTURE_INTERVAL, "10")) * TrackMeHelper.MILLISECONDS_PER_SECOND;
   }
 
-  public int getUpdateFrequency() {
-    return Integer.parseInt(myPreferences.getString(UPDATE_FREQUENCY, "15")) * TrackMeHelper.SECONDS_PER_MINUTE
+  public int getUpdateIntervalMillis() {
+    return Integer.parseInt(myPreferences.getString(UPDATE_INTERVAL, "15")) * TrackMeHelper.SECONDS_PER_MINUTE
         * TrackMeHelper.MILLISECONDS_PER_SECOND;
   }
 
@@ -84,15 +75,15 @@ final class MyPreference {
   }
 
   public void setSessoinID(final String sessionID) {
-    myPreferencesEditor = myPreferences.edit();
+    final SharedPreferences.Editor myPreferencesEditor = myPreferences.edit();
     myPreferencesEditor.putString(SESSION_ID, sessionID);
     myPreferencesEditor.commit();
   }
 
-  public int getNewUploadID() {
+  public int mkNewUploadID() {
     int uploadID = myPreferences.getInt(UPLOAD_ID, 0);
     uploadID += 1;
-    myPreferencesEditor = myPreferences.edit();
+    final SharedPreferences.Editor myPreferencesEditor = myPreferences.edit();
     myPreferencesEditor.putInt(UPLOAD_ID, uploadID);
     myPreferencesEditor.commit();
     return uploadID;

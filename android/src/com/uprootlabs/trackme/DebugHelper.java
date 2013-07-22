@@ -13,6 +13,7 @@ final class DebugHelper {
   public static final String PREFERENCE_ARCHIVED_LOCATION_COUNT = "archived";
   public static final String PREFERENCE_UPLOADED_LOCATION_COUNT = "uploaded";
   public static final String PREFERENCE_TOTAL_QUEUED_LOCATION_COUNT = "queued";
+  private TrackMeDB myDb;
   private SQLiteDatabase db;
   private SharedPreferences debug;
   private SharedPreferences.Editor debugEditor;
@@ -20,10 +21,11 @@ final class DebugHelper {
   public DebugHelper(final Context context) {
     debug = context.getSharedPreferences(PREFERENCE_NAME, 0);
     debugEditor = debug.edit();
-    db = new TrackMeDBHelper(context).getReadableDatabase();
+    db = new TrackMeDBHelper(context).getWritableDatabase();
+    myDb = new TrackMeDB(db, context);
   }
 
-  public synchronized void addCapturedCount() {
+  public synchronized void incrementCapturedCount() {
     final int captureCount = debug.getInt(PREFERENCE_TOTAL_LOCATION_COUNT, 0);
     final int queued = debug.getInt(PREFERENCE_TOTAL_QUEUED_LOCATION_COUNT, 0);
     debugEditor.putInt(PREFERENCE_TOTAL_LOCATION_COUNT, captureCount + 1);
@@ -31,7 +33,7 @@ final class DebugHelper {
     debugEditor.commit();
   }
 
-  public synchronized void addArchivedCount(final int newArchivedCount) {
+  public synchronized void incrementArchivedCount(final int newArchivedCount) {
     final int oldArchivedCount = debug.getInt(PREFERENCE_ARCHIVED_LOCATION_COUNT, 0);
     final int archivedCount = oldArchivedCount + newArchivedCount;
     final int queued = debug.getInt(PREFERENCE_TOTAL_QUEUED_LOCATION_COUNT, 0);
@@ -40,7 +42,7 @@ final class DebugHelper {
     debugEditor.commit();
   }
 
-  public synchronized void addUploadedCount(final int newUploadedCount) {
+  public synchronized void incrementUploadedCount(final int newUploadedCount) {
     final int oldUploadedCount = debug.getInt(PREFERENCE_UPLOADED_LOCATION_COUNT, 0);
     final int queued = debug.getInt(PREFERENCE_TOTAL_QUEUED_LOCATION_COUNT, 0);
     final int uploadedCount = oldUploadedCount + newUploadedCount ;
@@ -95,6 +97,19 @@ final class DebugHelper {
     debugDetails.append(getQueuedLocationsDetails());
 
     return debugDetails.toString();
+  }
+
+  public int generateLocations(Double lat, Double lng, final int interval, final int duration) {
+    long curTime = System.currentTimeMillis() - (duration * 2 * 3600000);
+    final int count = (duration * 3600) / interval;
+    for (int i = 1; i <= count; i++) {
+      myDb.insertLocation(lat, lng, curTime);
+      curTime += interval * 1000;
+      lat = (lat + .00357) % 90;
+      lng = (lng + .00357) % 180;
+    }
+
+    return count;
   }
 
 }

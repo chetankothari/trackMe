@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Editable;
@@ -34,8 +33,8 @@ public final class MainActivity extends Activity {
   private TextView valueAlt;
   private TextView valueAccuracy;
   private TextView valueTimeStamp;
-  private TextView valueCaptureFrequency;
-  private TextView valueUpdateFrequency;
+  private TextView valueCaptureInterval;
+  private TextView valueUpdateInterval;
   private TextView valueSessionID;
   private TextView debug;
   private Button startStopButton;
@@ -76,8 +75,8 @@ public final class MainActivity extends Activity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.debug_main);
 
-    valueCaptureFrequency = (TextView) findViewById(R.id.valueCaptureFrequency);
-    valueUpdateFrequency = (TextView) findViewById(R.id.valueUpdateFrequency);
+    valueCaptureInterval = (TextView) findViewById(R.id.valueCaptureInterval);
+    valueUpdateInterval = (TextView) findViewById(R.id.valueUpdateInterval);
     valueSessionID = (TextView) findViewById(R.id.valueSessionID);
     debug = (TextView) findViewById(R.id.debug);
     valueLat = (TextView) findViewById(R.id.lat);
@@ -125,12 +124,12 @@ public final class MainActivity extends Activity {
   public void onResume() {
     super.onResume();
 
-    final String captureFrequency = "" + (myPreference.getCaptureFrequency() / TrackMeHelper.MILLISECONDS_PER_SECOND) + "sec";
-    final String updateFrequency = ""
-        + (myPreference.getUpdateFrequency() / TrackMeHelper.SECONDS_PER_MINUTE / TrackMeHelper.MILLISECONDS_PER_SECOND) + "min";
+    final String captureInterval = "" + (myPreference.getCaptureIntervalMillis() / TrackMeHelper.MILLISECONDS_PER_SECOND) + "sec";
+    final String updateInterval = ""
+        + (myPreference.getUpdateIntervalMillis() / TrackMeHelper.SECONDS_PER_MINUTE / TrackMeHelper.MILLISECONDS_PER_SECOND) + "min";
     final String sessionID = myPreference.getSessionID();
-    valueCaptureFrequency.setText(captureFrequency);
-    valueUpdateFrequency.setText(updateFrequency);
+    valueCaptureInterval.setText(captureInterval);
+    valueUpdateInterval.setText(updateInterval);
     valueSessionID.setText(sessionID);
     final String debugDetails = debugPreferences.getDebugDetails();
     debug.setText(debugDetails);
@@ -154,7 +153,7 @@ public final class MainActivity extends Activity {
 
     case R.id.action_upload: {
       final Intent intent = new Intent(this, UploadService.class);
-      intent.putExtra(UploadService.UPLOAD_TYPE, UploadService.MANUAL_UPLOAD);
+      intent.setAction(UploadService.ACTION_MANUAL_UPLOAD);
       startService(intent);
       Log.d(MAIN_ACTIVITY_TAG, "Upload");
       break;
@@ -165,7 +164,7 @@ public final class MainActivity extends Activity {
       final Double lng = 74.5028338;
       final int interval = 5;
       final int duration = 3;
-      final int count = generateLocations(lat, lng, interval, duration);
+      final int count = debugPreferences.generateLocations(lat, lng, interval, duration);
       Log.d(MAIN_ACTIVITY_TAG, "generated " + count + " locations");
       break;
     }
@@ -173,21 +172,6 @@ public final class MainActivity extends Activity {
     }
 
     return true;
-  }
-
-  private int generateLocations(Double lat, Double lng, final int interval, final int duration) {
-    final SQLiteDatabase myDb = new TrackMeDBHelper(this).getWritableDatabase();
-    final TrackMeDB db = new TrackMeDB(myDb, this);
-    long curTime = System.currentTimeMillis() - (duration * 2 * 3600000);
-    final int count = (duration * 3600) / interval;
-    for (int i = 1; i <= count; i++) {
-      db.insertLocation(lat, lng, curTime);
-      curTime += interval * 1000;
-      lat = (lat + .00357) % 90;
-      lng = (lng + .00357) % 180;
-    }
-
-    return count;
   }
 
   public void onClickStartStop(final View v) {
@@ -212,10 +196,10 @@ public final class MainActivity extends Activity {
   private void startCapturingLocations() {
     if (myPreference.isAutoUpdateSet()) {
 
-      final int updateFrequency = myPreference.getUpdateFrequency();
+      final int updateInterval = myPreference.getUpdateIntervalMillis();
 
       if (!UploadService.pendingIntentExists(this)) {
-        UploadService.setUploadAlarm(this, UploadService.AUTO_UPLOAD, updateFrequency);
+        UploadService.setUploadAlarm(this, UploadService.ACTION_AUTO_UPLOAD, updateInterval);
       }
 
     }
@@ -227,22 +211,15 @@ public final class MainActivity extends Activity {
 
     if (captureServiceStatus.equals(LocationService.STATUS_CAPTURING_LOCATIONS)) {
       startStopButton.setText(R.string.stop_capturing);
-    } else if (captureServiceStatus.equals(LocationService.ERROR_CAPTURING_LOCATIONS)) {
-      showErrorDialog();
     }
   }
 
-  private void showErrorDialog() {
-    // TODO Auto-generated method stub
-
-  }
-
   private void updateLocationDetails(final Intent intent) {
-    valueLat.setText(intent.getStringExtra(LocationService.LATITUDE));
-    valueLng.setText(intent.getStringExtra(LocationService.LONGITUDE));
-    valueAlt.setText(intent.getStringExtra(LocationService.ALTITUDE));
-    valueAccuracy.setText(intent.getStringExtra(LocationService.ACCURACY));
-    valueTimeStamp.setText(intent.getStringExtra(LocationService.TIMESTAMP));
+    valueLat.setText(intent.getStringExtra(LocationService.KEY_LATITUDE));
+    valueLng.setText(intent.getStringExtra(LocationService.KEY_LONGITUDE));
+    valueAlt.setText(intent.getStringExtra(LocationService.KEY_ALTITUDE));
+    valueAccuracy.setText(intent.getStringExtra(LocationService.KEY_ACCURACY));
+    valueTimeStamp.setText(intent.getStringExtra(LocationService.KEY_TIMESTAMP));
   }
 
   public void onClickNewSession(final View v) {
@@ -271,7 +248,7 @@ public final class MainActivity extends Activity {
 
     alert.setNegativeButton(this.getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
       public void onClick(final DialogInterface dialog, final int whichButton) {
-        Toast.makeText(MainActivity.this, "SessionID changed to " + myPreference.getSessionID(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, "SessionID retained as " + myPreference.getSessionID(), Toast.LENGTH_SHORT).show();
       }
     });
 
@@ -280,13 +257,13 @@ public final class MainActivity extends Activity {
 
   public void onClickUpload(final View v) {
     final Intent intent = new Intent(this, UploadService.class);
-    intent.putExtra(UploadService.UPLOAD_TYPE, UploadService.MANUAL_UPLOAD);
+    intent.setAction(UploadService.ACTION_MANUAL_UPLOAD);
     startService(intent);
     Log.d(MAIN_ACTIVITY_TAG, "Upload");
   }
 
   private void stopCapturingLocations() {
-    final Intent intentStatus = new Intent(LocationService.ACTION_STOP_CAPTURIGN_LOCATIONS);
+    final Intent intentStatus = new Intent(LocationService.ACTION_STOP_CAPTURING_LOCATIONS);
     LocalBroadcastManager.getInstance(this).sendBroadcastSync(intentStatus);
 
     captureServiceStatus = intentStatus.getStringExtra(LocationService.PARAM_LOCATION_SERVICE_STATUS);
@@ -294,8 +271,6 @@ public final class MainActivity extends Activity {
 
     if (captureServiceStatus.equals(LocationService.STATUS_WARMED_UP)) {
       startStopButton.setText(R.string.start_capturing);
-    } else if (captureServiceStatus.equals(LocationService.ERROR_CAPTURING_LOCATIONS)) {
-      showErrorDialog();
     }
 
   }

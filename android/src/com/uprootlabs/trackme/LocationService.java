@@ -30,7 +30,7 @@ public final class LocationService extends Service implements LocationListener, 
     GooglePlayServicesClient.OnConnectionFailedListener {
 
   public static final String ACTION_CAPTURE_LOCATIONS = "LocationService/captureLocations";
-  public static final String ACTION_STOP_CAPTURIGN_LOCATIONS = "LocationService/stopCapturing";
+  public static final String ACTION_STOP_CAPTURING_LOCATIONS = "LocationService/stopCapturing";
   public static final String ACTION_QUERY_STATUS_MAIN_ACTIVITY = "LocationService/queryStatusMainActivity";
   public static final String ACTION_QUERY_STATUS_UPLOAD_SERVICE = "LocationService/queryStatusUploadService";
   public static final String ACTION_WARM_UP_SERVICE = "warmUpLocationService/MainActivity";
@@ -40,17 +40,14 @@ public final class LocationService extends Service implements LocationListener, 
   public static final String PARAM_LOCATION_SERVICE_STATUS = "serviceStatus";
   public static final String STATUS_CAPTURING_LOCATIONS = "capturingLocations";
   public static final String STATUS_WARMED_UP = "warmedUp";
-  public static final String LATITUDE = "latitude";
-  public static final String LONGITUDE = "longitude";
-  public static final String ALTITUDE = "altitude";
-  public static final String ACCURACY = "accuracy";
-  public static final String TIMESTAMP = "timestamp";
+  public static final String KEY_LATITUDE = "latitude";
+  public static final String KEY_LONGITUDE = "longitude";
+  public static final String KEY_ALTITUDE = "altitude";
+  public static final String KEY_ACCURACY = "accuracy";
+  public static final String KEY_TIMESTAMP = "timestamp";
 
-  private int captureFrequency;
-  private Notification notification;
   private LocationClient myLocationClient;
-  private LocationRequest myLocationRequest;
-  private int errorCode;
+  private int connectErrorCode;
   private boolean capturingLocations = false;
   private SQLiteDatabase myDb;
   private TrackMeDB db;
@@ -64,7 +61,7 @@ public final class LocationService extends Service implements LocationListener, 
       if (action.equals(ACTION_CAPTURE_LOCATIONS)) {
         Log.d(LOCATION_SERVICE_TAG, "capture Request");
         startCapture(intent);
-      } else if (action.equals(ACTION_STOP_CAPTURIGN_LOCATIONS)) {
+      } else if (action.equals(ACTION_STOP_CAPTURING_LOCATIONS)) {
         Log.d(LOCATION_SERVICE_TAG, "Stop Request");
         stopCapturing(intent);
       } else if (action.equals(ACTION_QUERY_STATUS_MAIN_ACTIVITY) | action.equals(ACTION_QUERY_STATUS_UPLOAD_SERVICE)) {
@@ -88,7 +85,7 @@ public final class LocationService extends Service implements LocationListener, 
     intentFilter.addAction(ACTION_CAPTURE_LOCATIONS);
     intentFilter.addAction(ACTION_QUERY_STATUS_MAIN_ACTIVITY);
     intentFilter.addAction(ACTION_QUERY_STATUS_UPLOAD_SERVICE);
-    intentFilter.addAction(ACTION_STOP_CAPTURIGN_LOCATIONS);
+    intentFilter.addAction(ACTION_STOP_CAPTURING_LOCATIONS);
 
     LocalBroadcastManager.getInstance(this).registerReceiver(broadCastReceiverLocationService, intentFilter);
 
@@ -129,13 +126,15 @@ public final class LocationService extends Service implements LocationListener, 
 
   private boolean captureLocations(final Intent intent) {
     Log.d(LOCATION_SERVICE_TAG, "From captureLocations");
-    captureFrequency = myPreferences.getCaptureFrequency();
-    myLocationRequest = LocationRequest.create();
+    int captureInterval = myPreferences.getCaptureIntervalMillis();
+    LocationRequest myLocationRequest = LocationRequest.create();
     myLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-    myLocationRequest.setInterval(captureFrequency);
-    myLocationRequest.setFastestInterval(captureFrequency);
+    myLocationRequest.setInterval(captureInterval);
+    myLocationRequest.setFastestInterval(captureInterval);
 
-    if (servicesConnected()) {
+    final int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+    boolean serviceConnected = ConnectionResult.SUCCESS == resultCode;
+    if (serviceConnected) {
       myLocationClient.requestLocationUpdates(myLocationRequest, this);
 
       capturingLocations = true;
@@ -146,6 +145,9 @@ public final class LocationService extends Service implements LocationListener, 
       capturingLocations = false;
       Log.d(LOCATION_SERVICE_TAG, "capturingLocations" + capturingLocations);
 
+      Log.d(LOCATION_SERVICE_TAG, "Google Play Service Not Available");
+
+      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, resultCode));
       intent.putExtra(PARAM_LOCATION_SERVICE_STATUS, ERROR_CAPTURING_LOCATIONS);
     }
 
@@ -157,7 +159,7 @@ public final class LocationService extends Service implements LocationListener, 
     Log.d(LOCATION_SERVICE_TAG, "From setForegroundService");
     final Intent intentNotification = new Intent(this, MainActivity.class);
     final PendingIntent pi = PendingIntent.getActivity(this, 1, intentNotification, 0);
-    notification = new Notification(R.drawable.capturing, "Capturing", System.currentTimeMillis());
+    Notification notification = new Notification(R.drawable.capturing, "Capturing", System.currentTimeMillis());
     notification.setLatestEventInfo(this, "TrackMe", "Capturing Locatoins", pi);
     notification.flags |= Notification.FLAG_ONGOING_EVENT;
 
@@ -174,10 +176,10 @@ public final class LocationService extends Service implements LocationListener, 
     intent.putExtra(PARAM_LOCATION_SERVICE_STATUS, STATUS_WARMED_UP);
 
     final Intent uiIntent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_UI);
-    uiIntent.putExtra(LATITUDE, "");
-    uiIntent.putExtra(LONGITUDE, "");
-    uiIntent.putExtra(ACCURACY, "");
-    uiIntent.putExtra(TIMESTAMP, "");
+    uiIntent.putExtra(KEY_LATITUDE, "");
+    uiIntent.putExtra(KEY_LONGITUDE, "");
+    uiIntent.putExtra(KEY_ACCURACY, "");
+    uiIntent.putExtra(KEY_TIMESTAMP, "");
     LocalBroadcastManager.getInstance(this).sendBroadcast(uiIntent);
 
     stopForeground(true);
@@ -205,40 +207,26 @@ public final class LocationService extends Service implements LocationListener, 
     final String dateFormatted = formatter.format(date);
 
     final DebugHelper updatePreferences = new DebugHelper(this);
-    updatePreferences.addCapturedCount();
+    updatePreferences.incrementCapturedCount();
 
     final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_UI);
-    intent.putExtra(LATITUDE, "" + location.getLatitude());
-    intent.putExtra(LONGITUDE, "" + location.getLongitude());
+    intent.putExtra(KEY_LATITUDE, "" + location.getLatitude());
+    intent.putExtra(KEY_LONGITUDE, "" + location.getLongitude());
     if (location.hasAltitude()) {
       final Double alt = location.getAltitude();
-      intent.putExtra(ALTITUDE, "" + alt);
+      intent.putExtra(KEY_ALTITUDE, "" + alt);
     } else {
-      intent.putExtra(ALTITUDE, "Altitude N/A");
+      intent.putExtra(KEY_ALTITUDE, "Altitude N/A");
     }
-    intent.putExtra(ACCURACY, "" + location.getAccuracy());
-    intent.putExtra(TIMESTAMP, dateFormatted);
+    intent.putExtra(KEY_ACCURACY, "" + location.getAccuracy());
+    intent.putExtra(KEY_TIMESTAMP, dateFormatted);
     LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 
   }
 
-  private boolean servicesConnected() {
-    final int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-
-    if (ConnectionResult.SUCCESS == resultCode) {
-      return true;
-    } else {
-      Log.d(LOCATION_SERVICE_TAG, "Google Play Service Not Available");
-
-      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, errorCode));
-
-      return false;
-    }
-  }
-
   @Override
   public void onConnectionFailed(final ConnectionResult connectionResult) {
-    errorCode = connectionResult.getErrorCode();
+    connectErrorCode = connectionResult.getErrorCode();
     if (connectionResult.hasResolution()) {
       Log.d(LOCATION_SERVICE_TAG, "Start Resolution Error");
 
@@ -260,7 +248,7 @@ public final class LocationService extends Service implements LocationListener, 
       mainActivityBroadCastintent.putExtra(PARAM_LOCATION_SERVICE_STATUS, ERROR_STARTING_SERVICE);
       LocalBroadcastManager.getInstance(this).sendBroadcast(mainActivityBroadCastintent);
 
-      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, errorCode));
+      getApplication().startActivity(mkDialogIntent(DialogActivity.STR_ERROR_GOOGLE, connectErrorCode));
 
       stopSelf();
     }

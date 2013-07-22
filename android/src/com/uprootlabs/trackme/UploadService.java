@@ -52,7 +52,7 @@ public final class UploadService extends Service {
           int code = -1;
           HttpResponse response = null;
 
-          final int uploadId = myPreference.getNewUploadID();
+          final int uploadId = myPreference.mkNewUploadID();
           db.assignUploadID(uploadId, uploadTime);
           Cursor c = db.getLocationsByUploadID(uploadId);
           final Map<SessionBatchTuple, List<Location>> sessionLocations = db.batching(c, uploadId);
@@ -94,12 +94,12 @@ public final class UploadService extends Service {
               if (batch.status.equals("true")) {
                 Log.d(UPLOAD_SERVICE_TAG, "Boolean New " + batch.status);
                 final int uploadedCount = db.moveLocationsToSessionTable(uploadID, batch.sessionId, batch.batchId);
-                updatePreferences.addUploadedCount(uploadedCount);
+                updatePreferences.incrementUploadedCount(uploadedCount);
                 final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
                 LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
               } else {
                 final int archivedCount = db.archiveLocations(uploadID, batch.sessionId, batch.batchId);
-                updatePreferences.addArchivedCount(archivedCount);
+                updatePreferences.incrementArchivedCount(archivedCount);
                 final Intent intent = new Intent(MainActivity.MAIN_ACTIVITY_UPDATE_DEBUG_UI);
                 LocalBroadcastManager.getInstance(UploadService.this).sendBroadcast(intent);
               }
@@ -123,11 +123,12 @@ public final class UploadService extends Service {
     }
   }
 
+  public static final String ACTION_NETWORK_UNAVAILABLE = "networkUnavailable";
+  public static final String ACTION_NETWORK_AVAILABLE = "networkAvailable";
+  public static final String ACTION_MANUAL_UPLOAD = "manual";
+  public static final String ACTION_AUTO_UPLOAD = "auto";
+  public static final String ACTION_ON_BOOT = "onBoot";
   private static final String UPLOAD_SERVICE_TAG = "uploadService";
-  public static final String UPLOAD_TYPE = "uploadType";
-  public static final String MANUAL_UPLOAD = "manual";
-  public static final String CANCEL_ALARM = "cancelAlarm";
-  public static final String AUTO_UPLOAD = "auto";
   public static final String UPLOAD_TIME = "uploadTime";
   public static final int MAX_RETRY_COUNT = 5;
 
@@ -150,14 +151,14 @@ public final class UploadService extends Service {
     return (pi != null);
   }
 
-  public static void setUploadAlarm(final Context context, final String uploadType, final int updateFrequency) {
+  public static void setUploadAlarm(final Context context, final String action, final int updateInterval) {
     final Intent intent = new Intent(context, UploadService.class);
-    intent.putExtra(UPLOAD_TYPE, uploadType);
+    intent.setAction(action);
     final PendingIntent piAutoUpdate = PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
     final int alarmType = AlarmManager.ELAPSED_REALTIME_WAKEUP;
     final AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-    alarmManager.set(alarmType, SystemClock.elapsedRealtime() + updateFrequency, piAutoUpdate);
+    alarmManager.set(alarmType, SystemClock.elapsedRealtime() + updateInterval, piAutoUpdate);
 
     Log.d(UPLOAD_SERVICE_TAG, "Auto Update Set");
   }
@@ -183,26 +184,18 @@ public final class UploadService extends Service {
   @Override
   public int onStartCommand(final Intent intent, final int flags, final int startId) {
 
-    String captureServiceStatus;
-    final String uploadType = intent.getStringExtra(UPLOAD_TYPE);
-    uploadTime = System.currentTimeMillis();
+    final String action = intent.getAction();
 
-    if (uploadType.equals(CANCEL_ALARM)) {
+    if (action.equals(ACTION_NETWORK_UNAVAILABLE)) {
       cancelUploadAlarm(this);
-    } else if (uploadType.equals(MANUAL_UPLOAD)) {
-      uploadeSession();
-    } else if (uploadType.equals(AUTO_UPLOAD)) {
-
-      final Intent intentStatus = new Intent(LocationService.ACTION_QUERY_STATUS_UPLOAD_SERVICE);
-      LocalBroadcastManager.getInstance(this).sendBroadcastSync(intentStatus);
-
-      captureServiceStatus = intentStatus.getStringExtra(LocationService.PARAM_LOCATION_SERVICE_STATUS);
-
-      if (LocationService.STATUS_CAPTURING_LOCATIONS.equals(captureServiceStatus) | db.getQueuedLocationsCount(uploadTime) > 0) {
-        setAutoUpdate();
-      }
-
-      uploadeSession();
+    } else if (action.equals(ACTION_MANUAL_UPLOAD)) {
+      uploadSession();
+    } else if (action.equals(ACTION_AUTO_UPLOAD)) {
+      setAutoUpdateAlarm();
+      uploadSession();
+    } else if ((action.equals(ACTION_ON_BOOT) | action.equals(ACTION_NETWORK_AVAILABLE)) && myPreference.isAutoUpdateSet()) {
+      setAutoUpdateAlarm();
+      uploadSession();
     }
 
     Log.d(UPLOAD_SERVICE_TAG, "exiting service");
@@ -218,18 +211,26 @@ public final class UploadService extends Service {
     startForeground(2, notification);
   }
 
-  private void setAutoUpdate() {
-    if (myPreference.isAutoUpdateSet()) {
+  private void setAutoUpdateAlarm() {
+    String captureServiceStatus;
+    final Intent intentStatus = new Intent(LocationService.ACTION_QUERY_STATUS_UPLOAD_SERVICE);
+    LocalBroadcastManager.getInstance(this).sendBroadcastSync(intentStatus);
+
+    captureServiceStatus = intentStatus.getStringExtra(LocationService.PARAM_LOCATION_SERVICE_STATUS);
+
+    if ((LocationService.STATUS_CAPTURING_LOCATIONS.equals(captureServiceStatus) | db.getQueuedLocationsCount(uploadTime) > 0)
+        && myPreference.isAutoUpdateSet()) {
       if (!pendingIntentExists(this)) {
-        final int updateFrequence = myPreference.getUpdateFrequency();
-        setUploadAlarm(this, AUTO_UPLOAD, updateFrequence);
+        final int updateInterval = myPreference.getUpdateIntervalMillis();
+        setUploadAlarm(this, ACTION_AUTO_UPLOAD, updateInterval);
       }
     }
   }
 
-  private void uploadeSession() {
+  private void uploadSession() {
     Log.d(UPLOAD_SERVICE_TAG, "Starting Upload Thread");
     synchronized (this) {
+      uploadTime = System.currentTimeMillis();
       if (!running && uploadPossible(uploadTime)) {
         setForegroundService();
         running = true;

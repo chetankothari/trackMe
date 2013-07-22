@@ -12,14 +12,14 @@ public class MyPreferencesActivity extends PreferenceActivity {
     super.onCreate(savedInstanceState);
     addPreferencesFromResource(R.xml.preferences);
 
-    final Preference.OnPreferenceChangeListener intChangePreferences = new Preference.OnPreferenceChangeListener() {
+    final Preference.OnPreferenceChangeListener intervalChangeListener = new Preference.OnPreferenceChangeListener() {
 
       @Override
       public boolean onPreferenceChange(final Preference preference, final Object newValue) {
         if (newValue.equals("") || Integer.parseInt(newValue.toString()) <= 0) {
           final Context context = getApplicationContext();
-          final String text_message = "Invalid input, time cannot be empty, 0 or negative";
-          final int duration = Toast.LENGTH_LONG;
+          final String text_message = "Invalid input, interval cannot be empty, 0 or negative";
+          final int duration = Toast.LENGTH_SHORT;
 
           // TODO Make it a alert box instead of a toast
           final Toast toast = Toast.makeText(context, text_message, duration);
@@ -31,15 +31,15 @@ public class MyPreferencesActivity extends PreferenceActivity {
 
     };
 
-    final MyEditTextPreference captureFrequencyPreference = (MyEditTextPreference) getPreferenceScreen().findPreference(
-        this.getResources().getString(R.string.key_capture_frequency));
+    final SummarizedEditTextPreference captureFrequencyPreference = (SummarizedEditTextPreference) getPreferenceScreen().findPreference(
+        this.getResources().getString(R.string.key_capture_interval));
 
-    captureFrequencyPreference.setOnPreferenceChangeListener(intChangePreferences);
+    captureFrequencyPreference.setOnPreferenceChangeListener(intervalChangeListener);
 
-    final MyEditTextPreference updateFrequencyPreference = (MyEditTextPreference) getPreferenceScreen().findPreference(
-        this.getResources().getString(R.string.key_update_frequency));
+    final SummarizedEditTextPreference updateFrequencyPreference = (SummarizedEditTextPreference) getPreferenceScreen().findPreference(
+        this.getResources().getString(R.string.key_update_interval));
 
-    updateFrequencyPreference.setOnPreferenceChangeListener(intChangePreferences);
+    updateFrequencyPreference.setOnPreferenceChangeListener(intervalChangeListener);
 
   }
 }

@@ -9,20 +9,11 @@ public class OnBroadcastListener extends BroadcastReceiver {
   private final String ON_BOOT_TAG = "onBoot";
   private final String onBoot = "android.intent.action.BOOT_COMPLETED";
   private final String onNetworkChange = "android.net.conn.CONNECTIVITY_CHANGE";
-  private MyPreference myPreference;
 
-  private void startUpload(final Context context) {
-
-    final Intent intentNew = new Intent(context, UploadService.class);
-    intentNew.putExtra(UploadService.UPLOAD_TYPE, UploadService.AUTO_UPLOAD);
-    context.startService(intentNew);
-
-  }
-
-  private void cancelAlarm(final Context context) {
+  private void startUploadService(final Context context, final String action) {
 
     final Intent broadcastIntent = new Intent(context, UploadService.class);
-    broadcastIntent.putExtra(UploadService.UPLOAD_TYPE, UploadService.CANCEL_ALARM);
+    broadcastIntent.setAction(action);
     context.startService(broadcastIntent);
 
   }
@@ -30,25 +21,24 @@ public class OnBroadcastListener extends BroadcastReceiver {
   @Override
   public void onReceive(final Context context, final Intent intent) {
     final String broadCastAction = intent.getAction();
-    myPreference = new MyPreference(context);
+
     if (broadCastAction.equals(onBoot)) {
 
-      if (myPreference.isAutoUpdateSet())
-        startUpload(context);
+      startUploadService(context, UploadService.ACTION_ON_BOOT);
 
     } else if (broadCastAction.equals(onNetworkChange)) {
 
-      if (UploadService.isNetworkAvailable(context) && myPreference.isAutoUpdateSet()) {
+      if (UploadService.isNetworkAvailable(context)) {
 
         Log.d(ON_BOOT_TAG, "Net available");
 
-        startUpload(context);
+        startUploadService(context, UploadService.ACTION_NETWORK_AVAILABLE);
 
       } else {
 
         Log.d(ON_BOOT_TAG, "No internet connection");
 
-        cancelAlarm(context);
+        startUploadService(context, UploadService.ACTION_NETWORK_UNAVAILABLE);
 
       }
 

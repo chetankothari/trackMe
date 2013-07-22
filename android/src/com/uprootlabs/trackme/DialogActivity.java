@@ -21,29 +21,29 @@ public class DialogActivity extends Activity {
   public static final String STR_ERROR_CODE = "errorCode";
   public static final String STR_ERROR_MESSAGE = "errorMessage";
 
-  DialogInterface.OnDismissListener dismissListener = new DialogInterface.OnDismissListener() {
-
-    @Override
-    public void onDismiss(final DialogInterface dialog) {
-      finish();
-    }
-
-  };
-
-  DialogInterface.OnClickListener clickListener = new DialogInterface.OnClickListener() {
-
-    @Override
-    public void onClick(final DialogInterface dialog, final int which) {
-      Log.d(DIALOG_ACTIVITY_TAG, "Dialog Cloased OK");
-      finish();
-    }
-
-  };
-
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+    DialogInterface.OnDismissListener dismissListener = new DialogInterface.OnDismissListener() {
+
+      @Override
+      public void onDismiss(final DialogInterface dialog) {
+        finish();
+      }
+
+    };
+
+    DialogInterface.OnClickListener clickListener = new DialogInterface.OnClickListener() {
+
+      @Override
+      public void onClick(final DialogInterface dialog, final int which) {
+        Log.d(DIALOG_ACTIVITY_TAG, "Dialog Cloased OK");
+        finish();
+      }
+
+    };
 
     final Intent intent = getIntent();
     final String errorType = intent.getStringExtra(STR_ERROR_TYPE);
@@ -70,16 +70,4 @@ public class DialogActivity extends Activity {
     }
 
   }
-
-  @Override
-  public void onPause() {
-    super.onPause();
-    finish();
-  }
-
-  @Override
-  public void onDestroy() {
-    super.onDestroy();
-  }
-
 }
